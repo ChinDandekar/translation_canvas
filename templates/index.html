@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}
+Dynamic Text Example
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <form method="POST" action="{{ url_for('process_input') }}" class="input-form">
+        <input type="text" name="user_input" class="input-field" placeholder={{ text }}>
+        <button type="submit" class="submit-button">Submit</button>
+    </form>
+</div>
+{% endblock %}
