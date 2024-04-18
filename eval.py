@@ -4,6 +4,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from tqdm import tqdm
 import re
 import argparse
+import os
 
 import json
 
@@ -79,7 +80,7 @@ if file_name == 0:
 else:
     print(file_name)
 
-batch_size = 20
+batch_size = 1
 extensions = "json"
 data = load_dataset(
     extensions,
@@ -106,7 +107,7 @@ output_json = []
 
 
 # run inference on the eval_dataset
-for i in tqdm(range(0, len(eval_dataset), batch_size)):
+for i in tqdm(range(0, 1, batch_size)):
     eval_batch = [eval_dataset[j]['input'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
     if None in eval_batch:
         print(f"None in eval_batch")
@@ -131,7 +132,4 @@ for i in tqdm(range(0, len(eval_dataset), batch_size)):
 
 
 print(output_json)
-json_out = json.dumps(output_json)
-
-with open(f"{memorable_name}_instructscore.json", "w") as f:
-    f.write(json_out)
+json.dump(output_json, open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json", "w"), indent=2)

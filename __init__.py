@@ -4,7 +4,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 import pandas as pd
 import json
-from instructscore_visualizer.utils import convert_log_to_json, create_and_exec_slurm
+from instructscore_visualizer.utils import convert_log_to_json, create_and_exec_slurm, instructscore_to_dict
 
 from flask import Flask, render_template, request
 
@@ -38,7 +38,19 @@ def create_app(test_config=None):
     @app.route('/visualize_instruct', methods=['POST'])
     def visualize_instruct():
         file = request.form['file']
-        input_data = ("I want to display text", "display", "red")
+        input_data = instructscore_to_dict(file)
+        # print(input_data)
+        # input_data = {
+        #     "I want to": "None",
+        #     "display": {
+        #         "error_type": "Omission",
+        #         "error_scale:": "Major",
+        #         "error_explanation": "The correct form should be \"suba\" as the verb \"subir\" was incorrectly conjugated."
+        #         },
+        #     "some": "None",
+        #     "text": "None",
+        # }
+        print(input_data)
         return render_template('visualize_instruct.html', input_data=input_data)
     
     

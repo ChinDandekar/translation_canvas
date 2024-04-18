@@ -1,5 +1,6 @@
 import json
 import os
+import string
 
 
 def convert_log_to_json(file, src_lang, tgt_lang, memorable_name):
@@ -52,3 +53,41 @@ def create_and_exec_slurm(memorable_name, file_name, email):
     else:
         os.waitpid(pid, 0)
         return 0
+
+def instructscore_to_dict(file):
+    with open(file) as f:
+        data = json.load(f)
+        first_data = data[0]
+        pred = first_data["prediction"]
+        ref = first_data["reference"]
+        pred_render_data = {}
+        pred_parts = pred.split()
+        pred_render_data = {}
+        for part in pred_parts:
+            pred_render_data[part] = "None"
+        # return pred_render_data
+        errors = first_data["problem"]
+        num_errors = errors["num_errors"]
+        for i in range(1, num_errors+1):
+            error = errors["error" + str(i)]
+            error_type = error["error_type"]
+            error_scale = error["error_scale"]
+            error_explanation = error["error_explanation"]
+            error_location = error["error_location"].lower()
+            for key in pred_render_data:
+                for keys in pred_render_data:
+                    cleaned_key = key.translate(str.maketrans("", "", string.punctuation))
+                    cleaned_error_location = error_location.translate(str.maketrans("", "", string.punctuation))
+                    if cleaned_key == cleaned_error_location:
+                        pred_render_data[f"{key}"] = {
+                            "error_type": error_type,
+                            "error_scale": error_scale,
+                            "error_explanation": error_explanation,
+                            "error_location": error_location
+                        }
+        print(pred_render_data)
+    render_data = {
+        "prediction": pred_render_data,
+        "reference": ref
+    }
+    return render_data

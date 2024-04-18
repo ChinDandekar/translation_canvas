@@ -6,22 +6,51 @@ InstructScore Visualizer
 
 {% block content %}
 <style>
-    .highlight {
-        color: red; /* Or any other color you prefer */
-        font-weight: bold;
+    .black-text {
+        font-size: 18px;
+        color: black;
+    }
+
+    .red-text {
+        font-size: 18px;
+        color: red;
+        cursor: pointer;
+    }
+
+    .popup {
+        display: none;
+        position: absolute;
+        background-color: white;
+        border: 1px solid black;
+        padding: 10px;
+        z-index: 1;
+    }
+
+    .red-text:hover + .popup {
+        display: block;
     }
 </style>
+
 <body>
     <div>
-        {% set text, highlight_word, highlight_color = input_data %}
-        {% set segments = text.split(highlight_word) %}
-        {% for segment in segments %}
-            {% if loop.first %}
-                {{ segment }}
+        <h1> Prediction </h1>
+        {% for key, value in input_data.prediction.items() %}
+            {% if value == "None" %}
+                <span class="black-text">{{ key }}</span>
+            {% elif value is mapping %}
+                <span class="red-text">{{ key }}</span>
+                <div class="popup">
+                    Error Type: {{ value.error_type }}<br>
+                    Major/minor: {{ value.error_scale }}<br>
+                    Error explanation: {{ value.error_explanation }}
+                </div>
             {% else %}
-                <span class="highlight">{{ highlight_word }}</span>{{ segment }}
+                {{ value }}
             {% endif %}
+            {% if not loop.last %} {% endif %}
         {% endfor %}
+        <h1> Reference </h1>
+            <span class = "black-text">{{ input_data.reference }}</span>
     </div>
 </body>
 {% endblock %}
