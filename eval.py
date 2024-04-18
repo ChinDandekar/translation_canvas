@@ -12,6 +12,7 @@ KEY_INSTANCES = "instances"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--file_name', type=str, default=0)
+parser.add_argument('--memorable_name', type=str, default=0)
 args = parser.parse_args()
 
 
@@ -72,6 +73,7 @@ def process_text(text):
 model_path = '/mnt/taurus/home/guangleizhu/instructscore_spanish/new_ft/checkpoint-565'
 
 file_name = args.file_name
+memorable_name = args.memorable_name
 if file_name == 0:
     raise ValueError("File name not provided")
 else:
@@ -131,5 +133,5 @@ for i in tqdm(range(0, len(eval_dataset), batch_size)):
 print(output_json)
 json_out = json.dumps(output_json)
 
-with open(f"{file_name.split('.')[0]}_instructscore.json", "w") as f:
+with open(f"{memorable_name}_instructscore.json", "w") as f:
     f.write(json_out)

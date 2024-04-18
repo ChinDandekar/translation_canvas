@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}
+InstructScore Visualizer
+{% endblock %}
+
+{% block content %}
+<style>
+    .highlight {
+        color: red; /* Or any other color you prefer */
+        font-weight: bold;
+    }
+</style>
+<body>
+    <div>
+        {% set text, highlight_word, highlight_color = input_data %}
+        {% set segments = text.split(highlight_word) %}
+        {% for segment in segments %}
+            {% if loop.first %}
+                {{ segment }}
+            {% else %}
+                <span class="highlight">{{ highlight_word }}</span>{{ segment }}
+            {% endif %}
+        {% endfor %}
+    </div>
+</body>
+{% endblock %}

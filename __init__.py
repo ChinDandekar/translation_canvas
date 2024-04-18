@@ -32,8 +32,14 @@ def create_app(test_config=None):
         return render_template('log_input.html')
     
     @app.route('/instruct_out', methods=['GET'])
-    def instruct_out():
-        return render_template('instruct_out.html')
+    def instruct_in():
+        return render_template('instruct_in.html')
+    
+    @app.route('/visualize_instruct', methods=['POST'])
+    def visualize_instruct():
+        file = request.form['file']
+        input_data = ("I want to display text", "display", "red")
+        return render_template('visualize_instruct.html', input_data=input_data)
     
     
     

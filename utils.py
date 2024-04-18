@@ -43,7 +43,7 @@ def create_and_exec_slurm(memorable_name, file_name, email):
         
         f.write("\n\n")
         f.write("export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7\n")
-        f.write(f'python {os.path.dirname(os.path.abspath(__file__))}/eval.py --file_name "/mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{memorable_name}/{file_name}.json"')
+        f.write(f'python {os.path.dirname(os.path.abspath(__file__))}/eval.py --file_name "/mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{memorable_name}/{file_name}.json" --memorable_name {memorable_name}')
     pid = os.fork()
     if pid==0:
         os.chdir(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}")
