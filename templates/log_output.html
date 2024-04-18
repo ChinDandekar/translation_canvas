@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}
+InstructScore Visualizer
+{% endblock %}
+
+{% block content %}
+<div class="custom-text">
+    Your request is being processed
+</div>
+<div class="description">
+    <p>A Slurm job has been started to evaluate your outputs. You should have recieved an email telling you that a job has been queued </p>
+    <p>You can also check in /mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{{ memorable_name }}/{{ memorable_name }}_{{ file_name }}_slurm_out.txt (and {{ memorable_name }}_{{ file_name }}_slurm_err.txt) for more details</p>
+    <p>Once the job is done, you will get an email. Come back to this site, click on the second link, and you will find the output json at /mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{{ memorable_name }}/{{ file_name }}_instrucscore.json </p>
+    <p>Click <a href="{{ url_for('index') }}">here</a> to go back to the main page</p>
+{% endblock %}

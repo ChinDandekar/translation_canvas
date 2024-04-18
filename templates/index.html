@@ -1,14 +1,24 @@
 {% extends "base.html" %}
 
 {% block title %}
-Dynamic Text Example
+InstructScore Visualizer
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <form method="POST" action="{{ url_for('process_input') }}" class="input-form">
-        <input type="text" name="user_input" class="input-field" placeholder={{ text }}>
-        <button type="submit" class="submit-button">Submit</button>
-    </form>
+<div class = "custom-text">
+    Welcome to InstructScore Visualizer!
+</div>
+
+<div class="description">
+    <p>This webapp expects the output of SimulEval (.log) and uses InstructScore to evaluate the output of a Streaming Speech Translation model</p>
+</div>
+
+<div>
+    <p>If you have a .log file that needs to be processed, click <a href="{{ url_for('log_input') }}">here</a></p>
+    
+</div>
+
+<div>  
+    <p>If you have a .json file that has already been processed, click <a href="{{ url_for('instruct_out') }}">here</a></p>
 </div>
 {% endblock %}

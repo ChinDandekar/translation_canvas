@@ -1,0 +1,74 @@
+[
+    {
+        "prediction": "Necesito que subas, que pases el fuego, y necesito que le consigas un par de zapatos. (Risas) Como si fuera un lugar.", 
+        "reference": "Necesito que suba, atraviese el fuego, y le traiga a esta mujer un par de zapatos \". (Risas) Lo juro.", 
+        "problem": 
+        {
+            "num_errors": 4, 
+            "error1": 
+            {
+                "error_type": "Problems with grammar, other than orthography", 
+                "error_scale": "Minor",
+                "error_location": "\"subas\"", 
+                "error_explanation": "The correct form should be \"suba\" to match with the first person singular subject \"Necesito\"."
+            }, 
+            "error2": 
+            {
+                "error_type": "Problems with grammar, other than orthography", 
+                "error_scale": "Minor", 
+                "error_location": "\"que pases\"", 
+                "error_explanation": "The correct phrase should be \"atraviese\" to match with the first person singular subject \"Necesito\"."
+            }, 
+            "error3": 
+            {
+                "error_type": "Problems with grammar, other than orthography", 
+                "error_scale": "Minor", 
+                "error_location": "\"necesito\"", 
+                "error_explanation": "The correct phrase should be \"lo juro\" which means \"I swear\" instead of \"necesito\" which means \"I need\"."
+            }, 
+            "error4": 
+            {
+                "error_type": "Problems with grammar, other than orthography", 
+                "error_scale": "Minor", 
+                "error_location": "\"Como si fuera un lugar\"",
+                "error_explanation": "The correct phrase should be \"Lo juro, come\u00e7e donde est\u00e9is\" which means \"I swear, go where you are\". The incorrect translation \"Como si fuera un lugar\" means \"As if it were a place\", which is incorrect and does not match the idiomatic expression in the source text."
+            }
+        }
+    }, 
+    {
+        "prediction": "As\u00ed que no es exactamente lo que esperaba, pero me fui. Sub\u00ed las escaleras, baj\u00e9 por el pasillo, pas\u00e9 por los verdaderos bomberos que ya hab\u00edan apagado el fuego , y entr\u00e9 en la habitaci\u00f3n del maestro para tomar un par de zapatos.", 
+        "reference": "No era exactamente lo que esperaba pero fui... sub\u00ed las escaleras, al final del pasillo, pas\u00e9 a los bomberos' reales' que a esa altura m\u00e1s o menos hab\u00edan terminado de apagar el fuego y entr\u00e9 al cuarto principal en busca de un par de zapatos.", 
+        "problem": 
+        {
+            "num_errors": 4, 
+            "error1": 
+            {
+                "error_type": "Incorrect use of verb tense", 
+                "error_scale": "Minor", 
+                "error_location": "\"me fui\" instead of \"fui\"", 
+                "error_explanation": "The verb tense should be consistent with the original text using past tense \"fui\". This error is minor as it does not change the overall meaning."
+            }, 
+            "error2": 
+            {
+                "error_type": "Incorrect vocabulary", 
+                "error_scale": "Major", 
+                "error_location": "\"baj\u00e9\" instead of \"sub\u00ed\"", 
+                "error_explanation": "The original text mentions going up the stairs, but in the incorrect translation, it says going down the stairs, which significantly changes the meaning."
+            }, 
+            "error3": 
+            {
+                "error_type": "Incorrect vocabulary", 
+                "error_scale": "Major", 
+                "error_location": "\"pas\u00e9\" instead of \"pas\u00e9\"", 
+                "error_explanation": "The original text says the speaker passed the fire extinguishers, but in the incorrect translation, it says they passed a teacher, which significantly changes the meaning."
+            }, 
+            "error4": 
+            {
+                "error_type": "Translation includes information not present in the source", 
+                "error_scale": "Major", 
+                "error_location": "\"la habitaci\u00f3n del maestro\" instead of \"el cuarto principal\"", 
+                "error_explanation": "The original text refers to the main room, not a teacher's room. This is a major error as it changes the meaning of the source."
+            }
+        }
+    }
+]

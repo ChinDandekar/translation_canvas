@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}
+InstructScore Visualizer
+{% endblock %}
+
+{% block content %}
+<div class = "description">
+    Please input the path to the .json file (e.g. /mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/Memorable name/Memorable Name_File Name), the source language and the target language, a name, and your email. Make sure to include /mnt/taurus, /mnt/aries or /mnt/gemini in the path.
+</div>
+
+<div class="container">
+    <form method="POST" action="{{ url_for('process_log_input') }}" class="input-form">
+        <input type="text" name="user_input" class="input-field" placeholder="/mnt/aries/...">
+        <input type="text" name="source_lang" class="input-field" placeholder="Source Lang">
+        <input type="text" name="target_lang" class="input-field" placeholder="Target Lang">
+        <input type="text" name="memorable_name" class="input-field" placeholder="Memorable name here">
+        <input type="text" name="email" class="input-field" placeholder="joeschmoe@gmail.com">
+        <button type="submit" class="submit-button">Submit</button>
+    </form>
+</div>
+{% endblock %}
