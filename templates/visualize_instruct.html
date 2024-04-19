@@ -5,52 +5,63 @@ InstructScore Visualizer
 {% endblock %}
 
 {% block content %}
-<style>
-    .black-text {
-        font-size: 18px;
-        color: black;
-    }
 
-    .red-text {
-        font-size: 18px;
-        color: red;
-        cursor: pointer;
-    }
-
-    .popup {
-        display: none;
-        position: absolute;
-        background-color: white;
-        border: 1px solid black;
-        padding: 10px;
-        z-index: 1;
-    }
-
-    .red-text:hover + .popup {
-        display: block;
-    }
-</style>
 
 <body>
-    <div>
-        <h1> Prediction </h1>
-        {% for key, value in input_data.prediction.items() %}
-            {% if value == "None" %}
-                <span class="black-text">{{ key }}</span>
-            {% elif value is mapping %}
-                <span class="red-text">{{ key }}</span>
-                <div class="popup">
-                    Error Type: {{ value.error_type }}<br>
-                    Major/minor: {{ value.error_scale }}<br>
-                    Error explanation: {{ value.error_explanation }}
+    <!-- <div class="fixed-header">
+        <h1 class="custom-text">InstructScore Visualizer</h1>
+    </div> -->
+    <div class = "content-holder">
+        {% for evaluation in input_data%}
+            <div class="container">        
+                <div>
+                <h1 class="pred-ref"> Prediction: </h1>
+                {% for key, value in evaluation.prediction.items() %}
+                    {% if value == "None" %}
+                        <span class="description">{{ key }}</span>
+                    {% elif value is mapping %}
+                        {% if value.error_scale == "Minor" %}
+                            <span class="orange-text">{{ key }}</span>
+                        {% else %}
+                            <span class="red-text">{{ key }}</span>
+                        {% endif %}
+                        <span class="tooltip">
+                            Error Type: {{ value.error_type }}<br>
+                            Error Location: {{ value.error_location }}<br>
+                            Major/minor: {{ value.error_scale }}<br>
+                            Error explanation: {{ value.error_explanation }}
+                        </span>
+                    {% else %}
+                        {{ value }}
+                    {% endif %}
+                    {% if not loop.last %} {% endif %}
+                {% endfor %}
                 </div>
-            {% else %}
-                {{ value }}
-            {% endif %}
-            {% if not loop.last %} {% endif %}
+
+                <div> 
+                    <h1 class="pred-ref" > Reference: </h1>            
+                    <span class="description">{{ evaluation.reference }}</span>
+                </div>
+            </div>
         {% endfor %}
-        <h1> Reference </h1>
-            <span class = "black-text">{{ input_data.reference }}</span>
     </div>
+
+    <script>
+        // JavaScript to show tooltip on hover
+        const tooltips = document.querySelectorAll('.tooltip');
+
+        tooltips.forEach((tooltip) => {
+            const parent = tooltip.previousElementSibling;
+            parent.addEventListener('mouseover', (e) => {
+                tooltip.style.display = 'block';
+                tooltip.style.left = `${e.pageX}px`; // Set tooltip horizontal position
+                tooltip.style.top = `${e.pageY}px`; // Set tooltip vertical position
+            });
+
+            parent.addEventListener('mouseout', () => {
+                tooltip.style.display = 'none';
+            });
+        });
+    </script>
 </body>
 {% endblock %}

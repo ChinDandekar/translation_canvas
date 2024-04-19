@@ -6,7 +6,7 @@
     <title>{% block title %}{% endblock %}</title>
     <style>
         body {
-            background-color: #b3c3fb;
+            background-color: #000;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -14,26 +14,46 @@
             margin: 0;
         }
 
+        .fixed-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            z-index: 1000; /* Ensure the header stays on top of other content */
+        }
+
+        .content-holder {
+            padding-top: 1000px;
+        }
+
         .description {
             font-size: 18px;
-            color: black;
+            color: #eeee;
             margin-top: 20px;
+            margin-bottom: 20px;
         }
         .custom-text {
             font-size: 36px;
             font-weight: bold;
-            color: black;
+            color: #eeee;
             justify-content: center;
         }
         .container {
             text-align: center;
-            margin-top: 50px;
+            background-color: #282828; /* iMessage blue color */
+            color: #fff; /* White text color */
+            border-radius: 10px; /* Rounded corners */
+            padding: 10px 20px; /* Padding inside the bubble */
+            margin-bottom: 25px
         }
+        
         
         .input-form {
             padding: 20px;
             border-radius: 5px;
-            background-color: #b3c3fb;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -52,7 +72,7 @@
         .submit-button-wrapper {
             display: inline-block; /* Wrap content */
             padding: 5px; /* Space between the wrapper border and the button */
-            background-color: #b3c3fb; /* Light grey background for the wrapper */
+            background-color: #000; /* Light grey background for the wrapper */
             border-radius: 8px; /* Rounded corners for the wrapper */
             width: 100%; /* Ensures the button container spans the full width */
             display: flex;
@@ -80,7 +100,37 @@
             background-color: #6480E5; /* Darker shade of blue on hover */
             transform: scale(1.05); /* Slightly increase size on hover */
           }
+
+        .pred-ref {
+            font-size: 24px;
+            font-weight: bold;
+            color: #eeee;
+            text-align: left;
+        }
+        .red-text {
+            font-size: 18px;
+            color: red;
+            cursor: pointer;
+        }
+    
+        .orange-text {
+            font-size: 18px;
+            color: #c27f03;
+            cursor: pointer;
+        }
+    
+        .tooltip {
+            position: absolute;
+            background-color: #004e75; /* iMessage blue color */
+            color: #fff; /* White text color */
+            border-radius: 10px; /* Rounded corners */
+            padding: 10px 20px; /* Padding inside the bubble */
+            z-index: 1;
+            display: none; /* Hide the tooltip by default */
+        }
     </style>
+
+
 </head>
 <body>
     <div class="content">
