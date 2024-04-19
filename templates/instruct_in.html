@@ -5,11 +5,12 @@ InstructScore Visualizer
 {% endblock %}
 
 {% block content %}
-<div class = "description">
-    Please input the memorable name here (same one that was inputted when evaluating the SimlEval logs).
-</div>
+
 
 <div class="container">
+    <div class = "description">
+        Please input the memorable name here (same one that was inputted when evaluating the SimlEval logs).
+    </div>
     <form method="POST" action="{{ url_for('visualize_instruct') }}" class="input-form">
         <input type="text" name="file" class="input-field" placeholder="A very descriptive name for Instructscore evaluation">
         <button type="submit" class="submit-button">Submit</button>

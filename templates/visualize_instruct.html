@@ -6,11 +6,8 @@ InstructScore Visualizer
 
 {% block content %}
 
-
 <body>
-    <!-- <div class="fixed-header">
-        <h1 class="custom-text">InstructScore Visualizer</h1>
-    </div> -->
+
     <div class = "content-holder">
         {% for evaluation in input_data%}
             <div class="container">        
@@ -46,6 +43,16 @@ InstructScore Visualizer
         {% endfor %}
     </div>
 
+     <!-- Circle with question mark icon -->
+     <div class="help-circle">
+        <span class="question-mark">?</span>
+    </div>
+    <span class="help-tooltip">
+        <p>Hover over the red and orange text to see the error details.</p>
+        <p> Hover over the question mark to see this help tooltip.</p>
+        <p> The <span class = "red-text"> red text </span> signifies major errors and <span class = "orange-text"> orange text </span> signifies minor text. </p>
+    </span>
+
     <script>
         // JavaScript to show tooltip on hover
         const tooltips = document.querySelectorAll('.tooltip');
@@ -60,6 +67,31 @@ InstructScore Visualizer
 
             parent.addEventListener('mouseout', () => {
                 tooltip.style.display = 'none';
+            });
+        });
+
+         // JavaScript to show help-tooltip on hover
+        const help_tooltips = document.querySelectorAll('.help-tooltip');
+        const helpCircle = document.querySelector('.help-circle');
+
+        help_tooltips.forEach((help_tooltip) => {
+            const parent = help_tooltip.previousElementSibling;
+            window.console.log(parent)
+            parent.addEventListener('mouseover', (e) => {
+                help_tooltip.style.display = 'block';
+                window.console.log("mouseover")
+                const tooltipWidth = help_tooltip.offsetWidth;
+                const tooltipHeight = help_tooltip.offsetHeight;
+                const mouseX = e.clientX;
+                const mouseY = e.clientY;
+
+                // Position tooltip to the left and above the mouse
+                help_tooltip.style.left = `${helpCircle.offsetLeft - tooltipWidth}px`;
+                help_tooltip.style.top = `${helpCircle.offsetTop - tooltipHeight}px`;
+            });
+
+            parent.addEventListener('mouseout', () => {
+                help_tooltip.style.display = 'none';
             });
         });
     </script>

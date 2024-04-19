@@ -39,7 +39,6 @@ def create_app(test_config=None):
     def visualize_instruct():
         file = request.form['file']
         input_data = instructscore_to_dict(file)
-        print(input_data)
         return render_template('visualize_instruct.html', input_data=input_data)
     
     

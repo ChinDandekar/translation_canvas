@@ -6,12 +6,17 @@
     <title>{% block title %}{% endblock %}</title>
     <style>
         body {
-            background-color: #000;
+            margin: 0; /* Remove default margin */
+            padding: 0; /* Remove default padding */
+            background-image: url('../static/background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed; /* Fix the background image */
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
         }
 
         .fixed-header {
@@ -26,20 +31,22 @@
         }
 
         .content-holder {
-            padding-top: 1000px;
+            padding-top: 500px;
         }
 
         .description {
-            font-size: 18px;
+            font-size: 15px;
             color: #eeee;
             margin-top: 20px;
             margin-bottom: 20px;
+            font-family: 'Lucida Console', 'Monaco', 'monospace';
         }
         .custom-text {
-            font-size: 36px;
+            font-size: 30px;
             font-weight: bold;
             color: #eeee;
             justify-content: center;
+            font-family: 'Lucida Console', 'Monaco', 'monospace';
         }
         .container {
             text-align: center;
@@ -47,7 +54,21 @@
             color: #fff; /* White text color */
             border-radius: 10px; /* Rounded corners */
             padding: 10px 20px; /* Padding inside the bubble */
-            margin-bottom: 25px
+            margin-bottom: 10px;
+            opacity: 0.95;
+            margin-top: 10vh; /* Adjust the top margin to vertically center the container */
+        }
+        
+        .tooltip {
+            position: absolute;
+            background-color: #3e88c5; /* iMessage blue color */
+            color: #fff; /* White text color */
+            border-radius: 10px; /* Rounded corners */
+            padding: 10px 20px; /* Padding inside the bubble */
+            z-index: 100000; /* Set higher z-index to ensure it covers other elements */
+            display: none; /* Hide the tooltip by default */
+            font-family: 'Lucida Console', 'Monaco', 'monospace';
+            opacity: 1;
         }
         
         
@@ -102,31 +123,57 @@
           }
 
         .pred-ref {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             color: #eeee;
             text-align: left;
+            font-family: 'Lucida Console', 'Monaco', 'monospace';
         }
         .red-text {
-            font-size: 18px;
-            color: red;
+            font-size: 15px;
+            color: rgb(202, 1, 1);
             cursor: pointer;
+            font-family: 'Lucida Console', 'Monaco', 'monospace';
         }
     
         .orange-text {
-            font-size: 18px;
+            font-size: 15px;
             color: #c27f03;
             cursor: pointer;
+            font-family: 'Lucida Console', 'Monaco', 'monospace';
         }
     
-        .tooltip {
+        
+
+        .help-circle {
+            position: fixed; /* Position the circle fixed on the viewport */
+            bottom: 20px; /* Distance from the bottom */
+            right: 20px; /* Distance from the right */
+            width: 50px; /* Width of the circle */
+            height: 50px; /* Height of the circle */
+            border-radius: 50%; /* Make it a circle */
+            background-color: #3e88c5; /* White background color */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .help-tooltip {
             position: absolute;
-            background-color: #004e75; /* iMessage blue color */
+            background-color: #3e88c5; /* iMessage blue color */
             color: #fff; /* White text color */
             border-radius: 10px; /* Rounded corners */
             padding: 10px 20px; /* Padding inside the bubble */
-            z-index: 1;
+            z-index: 100000; /* Set higher z-index to ensure it covers other elements */
             display: none; /* Hide the tooltip by default */
+            font-family: 'Lucida Console', 'Monaco', 'monospace';
+            opacity: 1;
+        }
+    
+        .question-mark {
+            font-size: 24px; /* Adjust the size of the question mark icon */
+            color: #fff; /* White color */
         }
     </style>
 
