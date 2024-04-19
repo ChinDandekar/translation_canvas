@@ -6,12 +6,12 @@ InstructScore Visualizer
 
 {% block content %}
 <div class = "description">
-    Please input the path to the .json file (e.g. /mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/Memorable name/Memorable Name.json).
+    Please input the memorable name here (same one that was inputted when evaluating the SimlEval logs).
 </div>
 
 <div class="container">
     <form method="POST" action="{{ url_for('visualize_instruct') }}" class="input-form">
-        <input type="text" name="file" class="input-field" placeholder="/mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/...">
+        <input type="text" name="file" class="input-field" placeholder="A very descriptive name for Instructscore evaluation">
         <button type="submit" class="submit-button">Submit</button>
     </form>
 </div>

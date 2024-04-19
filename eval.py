@@ -16,6 +16,17 @@ parser.add_argument('--file_name', type=str, default=0)
 parser.add_argument('--memorable_name', type=str, default=0)
 args = parser.parse_args()
 
+def split_sentence_with_queries(sentence, queries):
+    # Create a regular expression pattern to match any of the queries
+    pattern = '|'.join(re.escape(query) for query in queries)
+    # Split the sentence using the pattern as the delimiter
+    parts = re.split(f'({pattern})', sentence, flags=re.IGNORECASE)
+
+    # Filter out empty strings and None values
+    phrases = [part.strip() for part in parts if part]
+
+    return phrases
+
 
 def get_score(text):
     keyword = re.escape('Major/minor: Major')
@@ -30,7 +41,7 @@ def get_score(text):
     # print('=' * 50)
     return max(-5 * num_major - num_minor, -25)
 
-def process_text(text):
+def process_text(text, prediction):
     # print(text)
     text = text + '\n'
     num_pattern = r'Your Translation contains (\d+) errors:'
@@ -40,9 +51,10 @@ def process_text(text):
     else:
         num_errors = int(num_errors.group(1))
     
-    error_dict = {"num_errors": num_errors}
+    pred_render_data = {}
     if num_errors == 0:
-        return error_dict
+        pred_render_data[prediction] = "None"
+        return pred_render_data
     # Define regular expression patterns
     error_pattern = r'Error type (\d+): (.+?)\nMajor/minor: (.+?)\nError location (\d+): (.+?)\nExplanation for error \d+: (.+?)\n'
 
@@ -50,6 +62,9 @@ def process_text(text):
     matches = re.findall(error_pattern, text)
     print(f"Matches found: {matches}")
     print(f"text: {text}")
+    
+    queries = []
+    query_dict = []
 
     # Create a dictionary to store error information
    
@@ -57,18 +72,30 @@ def process_text(text):
         error_num = int(match[0])
         error_type = match[1]
         error_scale = match[2]
-        error_location = match[4]
+        error_location = match[4][1:-1]
         error_explanation = match[5]
 
-        error_key = f'error{error_num}'
-        error_dict[error_key] = {
+        queries.append(error_location)
+        query_dict.append({
             'error_type': error_type,
             'error_scale': error_scale,
             'error_location': error_location,
             'error_explanation': error_explanation
-        }
+        })
         
-    return error_dict
+    phrases = split_sentence_with_queries(prediction, queries)
+    for phrase in phrases:
+        query_match = False
+        for i,query in enumerate(queries):
+            if query.lower() in phrase.lower():
+                query_match = True
+                pred_render_data[phrase] = query_dict[i]
+                break
+        if not query_match:
+            pred_render_data[phrase] = "None"
+    
+        
+    return pred_render_data
 
 
 model_path = '/mnt/taurus/home/guangleizhu/instructscore_spanish/new_ft/checkpoint-565'
@@ -80,7 +107,7 @@ if file_name == 0:
 else:
     print(file_name)
 
-batch_size = 1
+batch_size = 20
 extensions = "json"
 data = load_dataset(
     extensions,
@@ -107,7 +134,7 @@ output_json = []
 
 
 # run inference on the eval_dataset
-for i in tqdm(range(0, 1, batch_size)):
+for i in tqdm(range(0, len(eval_dataset), batch_size)):
     eval_batch = [eval_dataset[j]['input'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
     if None in eval_batch:
         print(f"None in eval_batch")
@@ -120,13 +147,12 @@ for i in tqdm(range(0, 1, batch_size)):
         
         for j in range(len(outputs)):
             text = tokenizer.decode(outputs[j], skip_special_tokens=True)
-            problem_dict = process_text(text)
             prediction = eval_dataset[i+j]['prediction']
+            pred_render_dict = process_text(text, prediction)
             reference = eval_dataset[i+j]['reference']
             output_json.append({
-                'prediction': prediction,
+                'prediction': pred_render_dict,
                 'reference': reference,
-                'problem': problem_dict
             })
 
 

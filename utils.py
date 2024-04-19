@@ -44,7 +44,7 @@ def create_and_exec_slurm(memorable_name, file_name, email):
                 f"#SBATCH --error=/mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{memorable_name}/{memorable_name}_{file_name}_slurm_err.txt")
         
         f.write("\n\n")
-        f.write("export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7\n")
+        f.write("export CUDA_VISIBLE_DEVICES=3,6,7\n")
         f.write(f'python {os.path.dirname(os.path.abspath(__file__))}/eval.py --file_name "/mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{memorable_name}/{file_name}.json" --memorable_name {memorable_name}')
     pid = os.fork()
     if pid==0:
@@ -66,55 +66,11 @@ def split_sentence_with_queries(sentence, queries):
 
     return phrases
 
-def instructscore_to_dict(file):
+def instructscore_to_dict(memorable_name):
+    file = f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json"
     with open(file) as f:
         data = json.load(f)
-        length =  10
-        render_data = []
-        for i in range(length):
-            print(data[i])
-            cur_data = data[i]
+        length =  5
+        render_data = data[:length]
         
-            pred = cur_data["prediction"]
-            ref = cur_data["reference"]
-            
-            
-            # return pred_render_data
-            errors = cur_data["problem"]
-            num_errors = errors["num_errors"]
-            queries = []
-            query_dict = []
-            for i in range(1, num_errors+1):
-                error = errors["error" + str(i)]
-                error_type = error["error_type"]
-                error_scale = error["error_scale"]
-                error_explanation = error["error_explanation"]
-                error_location = error["error_location"][1:-1]
-                # cleaned_error_location = error_location.translate(str.maketrans("", "", string.punctuation)).lower().split()
-                queries.append(error_location)
-                query_dict.append(
-                    {
-                        "error_type": error_type,
-                        "error_scale": error_scale,
-                        "error_explanation": error_explanation,
-                        "error_location": error_location
-                    })
-            print(queries)
-            phrases = split_sentence_with_queries(pred, queries)
-            pred_render_data = {}
-            counter = 0
-            for phrase in phrases:
-                print(f"Phrase: {phrase.lower()}, query: {queries[counter].lower()}")
-                query_match = False
-                for i,query in enumerate(queries):
-                    if query.lower() in phrase.lower():
-                        query_match = True
-                        pred_render_data[phrase] = query_dict[i]
-                        break
-                if not query_match:
-                    pred_render_data[phrase] = "None"
-            render_data.append({
-                "prediction": pred_render_data,
-                "reference": ref
-            })
     return render_data

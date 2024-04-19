@@ -39,17 +39,6 @@ def create_app(test_config=None):
     def visualize_instruct():
         file = request.form['file']
         input_data = instructscore_to_dict(file)
-        # print(input_data)
-        # input_data = {
-        #     "I want to": "None",
-        #     "display": {
-        #         "error_type": "Omission",
-        #         "error_scale:": "Major",
-        #         "error_explanation": "The correct form should be \"suba\" as the verb \"subir\" was incorrectly conjugated."
-        #         },
-        #     "some": "None",
-        #     "text": "None",
-        # }
         print(input_data)
         return render_template('visualize_instruct.html', input_data=input_data)
     
