@@ -2,6 +2,7 @@ import json
 import os
 import string
 import re
+import subprocess
 
 
 def convert_log_to_json(file, src_lang, tgt_lang, memorable_name):
@@ -26,8 +27,22 @@ def convert_log_to_json(file, src_lang, tgt_lang, memorable_name):
     json.dump(ansJson, open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{new_file}.json", "w"), indent=2)
     return new_file
     
+def get_free_gpus():
+    command = ['gpustat', '--json']
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode == 0:
+        gpu_info = json.loads(result.stdout)
+    else:
+        raise RuntimeError("Failed to get GPU information")
+    
+    free_indices = []
+    for gpu in gpu_info['gpus']:
+        if gpu['memory.used'] <= 100:
+            free_indices.append(gpu['index'])
+    return free_indices
 
 def create_and_exec_slurm(memorable_name, file_name, email):
+    free_gpus = get_free_gpus()
     with open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_{file_name}.sh", "w") as f:
         f.write("#!/usr/bin/env bash\n\n\n" + 
                 "#SBATCH --nodes=1\n" +
@@ -44,7 +59,8 @@ def create_and_exec_slurm(memorable_name, file_name, email):
                 f"#SBATCH --error=/mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{memorable_name}/{memorable_name}_{file_name}_slurm_err.txt")
         
         f.write("\n\n")
-        f.write("export CUDA_VISIBLE_DEVICES=3,6,7\n")
+        visible_devices = ",".join([str(i) for i in free_gpus])
+        f.write(f"export CUDA_VISIBLE_DEVICES={visible_devices}\n")
         f.write(f'python {os.path.dirname(os.path.abspath(__file__))}/eval.py --file_name "/mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{memorable_name}/{file_name}.json" --memorable_name {memorable_name}')
     pid = os.fork()
     if pid==0:

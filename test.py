@@ -1,4 +1,8 @@
 import re
+import subprocess
+import json
+import gpustat
+
 
 def split_sentence_with_queries(sentence, queries):
     # Create a regular expression pattern to match any of the queries
@@ -11,8 +15,32 @@ def split_sentence_with_queries(sentence, queries):
 
     return phrases
 
-sentence = "Necesito que subas, que pases el fuego, y necesito que le consigas un par de zapatos. (Risas) Como si fuera un lugar."
-queries = ["test seNtence", "to be", "many"]
+# sentence = "Necesito que subas, que pases el fuego, y necesito que le consigas un par de zapatos. (Risas) Como si fuera un lugar."
+# queries = ["test seNtence", "to be", "many"]
 
-result = split_sentence_with_queries(sentence, queries)
-print(result)
+# result = split_sentence_with_queries(sentence, queries)
+# print(result)
+
+
+def get_free_gpus():
+    command = ['gpustat', '--json']
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode == 0:
+        gpu_info = json.loads(result.stdout)
+    else:
+        raise RuntimeError("Failed to get GPU information")
+    
+    free_indices = []
+    for gpu in gpu_info['gpus']:
+        if gpu['memory.used'] <= 100:
+            free_indices.append(gpu['index'])
+    return free_indices
+
+
+
+
+
+
+
+free_gpu_indices = get_free_gpus()
+print(free_gpu_indices)
