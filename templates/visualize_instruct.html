@@ -15,12 +15,12 @@ InstructScore Visualizer
                 <h1 class="pred-ref"> Prediction: </h1>
                 {% for key, value in evaluation.prediction.items() %}
                     {% if value == "None" %}
-                        <span class="description">{{ key }}</span>
+                        <span class="description">{{ key }} </span>
                     {% elif value is mapping %}
                         {% if value.error_scale == "Minor" %}
-                            <span class="orange-text">{{ key }}</span>
+                            <span class="orange-text">{{ key }} </span>
                         {% else %}
-                            <span class="red-text">{{ key }}</span>
+                            <span class="red-text">{{ key }} </span>
                         {% endif %}
                         <span class="tooltip">
                             Error Type: {{ value.error_type }}<br>
@@ -41,59 +41,70 @@ InstructScore Visualizer
                 </div>
             </div>
         {% endfor %}
+
+        <!-- Pagination controls -->
+            <!-- Pagination controls -->
+        <div class = "pagination">
+                {% if current_page > 1 %}
+                    <div>
+                        <button type="submit" class="pagination-button" onclick="previousPage('{{ next_page_url }}')">Previous</button>
+                    </div>
+                {% endif %}
+            
+            <div class="description">
+                Page {{ current_page }} of {{ total_pages }}
+            </div>
+            
+            
+                {% if current_page < total_pages %}
+                    <!-- Next button with onclick event to update the form -->
+                    <div>
+                        <button type="submit" class="pagination-button" onclick="nextPage('{{ next_page_url }}')">Next</button>
+                    </div>
+                {% endif %}
+           
+
+            <!-- Hidden form for passing file value -->
+            <form id="hiddenForm" method="POST" action="{{ url_for('visualize_instruct') }}" style="display: none;">
+                <input type="hidden" name="file" id="file" value={{ file }}>
+                <input type="hidden" name="current_page" id="current_page" value={{ current_page }}>
+            </form>
+
+            <!-- JavaScript function to update file value and submit form -->
+            <script>
+                function nextPage(nextPageUrl) {
+                    var fileInputValue = document.getElementById('file').value;
+                    window.console.log("Logging file input value:")
+                    window.console.log(fileInputValue)
+                    var current_page = document.getElementById('current_page').value;
+                    window.console.log("Logging current page:")
+                    window.console.log(current_page)
+                    document.getElementById('hiddenForm').action = nextPageUrl;
+                    document.getElementById('file').value = fileInputValue;
+                    document.getElementById('current_page').value = parseInt(current_page)+1;
+                    document.getElementById('hiddenForm').submit();
+                }
+
+                function previousPage(nextPageUrl) {
+                    var fileInputValue = document.getElementById('file').value;
+                    window.console.log("Logging file input value:")
+                    window.console.log(fileInputValue)
+                    var current_page = document.getElementById('current_page').value;
+                    window.console.log("Logging current page:")
+                    window.console.log(current_page)
+                    document.getElementById('hiddenForm').action = nextPageUrl;
+                    document.getElementById('file').value = fileInputValue;
+                    document.getElementById('current_page').value = parseInt(current_page)-1;
+                    document.getElementById('hiddenForm').submit();
+                }
+            </script>
+        </div>
     </div>
 
-     <!-- Circle with question mark icon -->
-     <div class="help-circle">
-        <span class="question-mark">?</span>
-    </div>
-    <span class="help-tooltip">
-        <p>Hover over the red and orange text to see the error details.</p>
-        <p> Hover over the question mark to see this help tooltip.</p>
-        <p> The <span class = "red-text"> red text </span> signifies major errors and <span class = "orange-text"> orange text </span> signifies minor text. </p>
-    </span>
+ 
 
-    <script>
-        // JavaScript to show tooltip on hover
-        const tooltips = document.querySelectorAll('.tooltip');
+    
 
-        tooltips.forEach((tooltip) => {
-            const parent = tooltip.previousElementSibling;
-            parent.addEventListener('mouseover', (e) => {
-                tooltip.style.display = 'block';
-                tooltip.style.left = `${e.pageX}px`; // Set tooltip horizontal position
-                tooltip.style.top = `${e.pageY}px`; // Set tooltip vertical position
-            });
-
-            parent.addEventListener('mouseout', () => {
-                tooltip.style.display = 'none';
-            });
-        });
-
-         // JavaScript to show help-tooltip on hover
-        const help_tooltips = document.querySelectorAll('.help-tooltip');
-        const helpCircle = document.querySelector('.help-circle');
-
-        help_tooltips.forEach((help_tooltip) => {
-            const parent = help_tooltip.previousElementSibling;
-            window.console.log(parent)
-            parent.addEventListener('mouseover', (e) => {
-                help_tooltip.style.display = 'block';
-                window.console.log("mouseover")
-                const tooltipWidth = help_tooltip.offsetWidth;
-                const tooltipHeight = help_tooltip.offsetHeight;
-                const mouseX = e.clientX;
-                const mouseY = e.clientY;
-
-                // Position tooltip to the left and above the mouse
-                help_tooltip.style.left = `${helpCircle.offsetLeft - tooltipWidth}px`;
-                help_tooltip.style.top = `${helpCircle.offsetTop - tooltipHeight}px`;
-            });
-
-            parent.addEventListener('mouseout', () => {
-                help_tooltip.style.display = 'none';
-            });
-        });
-    </script>
+    
 </body>
 {% endblock %}

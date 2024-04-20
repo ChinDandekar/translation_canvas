@@ -66,11 +66,18 @@ def split_sentence_with_queries(sentence, queries):
 
     return phrases
 
-def instructscore_to_dict(memorable_name):
-    file = f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json"
-    with open(file) as f:
+def instructscore_to_dict(memorable_name, start_index, items_per_page):
+    file_path = f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json"
+    
+    with open(file_path) as f:
         data = json.load(f)
-        length =  5
-        render_data = data[:length]
         
-    return render_data
+        # Calculate the end index based on start index and items per page
+        end_index = start_index + items_per_page
+        
+        # Retrieve the subset of data based on pagination
+        render_data = data[start_index:end_index]
+        
+        total_length = len(data)
+        
+    return render_data, total_length

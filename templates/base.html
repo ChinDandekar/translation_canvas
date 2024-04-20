@@ -6,7 +6,7 @@
     <title>{% block title %}{% endblock %}</title>
     <style>
         body {
-            margin: 0; /* Remove default margin */
+            margin: auto; /* Remove default margin */
             padding: 0; /* Remove default padding */
             background-image: url('../static/background.jpg');
             background-size: cover;
@@ -54,18 +54,20 @@
             color: #fff; /* White text color */
             border-radius: 10px; /* Rounded corners */
             padding: 10px 20px; /* Padding inside the bubble */
-            margin-bottom: 10px;
+            margin-bottom: 60px;
             opacity: 0.95;
             margin-top: 10vh; /* Adjust the top margin to vertically center the container */
+            z-index: 1; /* Set higher z-index to ensure it covers other elements */
+            position: relative;
         }
         
         .tooltip {
-            position: absolute;
+            position: fixed;
             background-color: #3e88c5; /* iMessage blue color */
             color: #fff; /* White text color */
             border-radius: 10px; /* Rounded corners */
             padding: 10px 20px; /* Padding inside the bubble */
-            z-index: 100000; /* Set higher z-index to ensure it covers other elements */
+            z-index: 2; /* Set higher z-index to ensure it covers other elements */
             display: none; /* Hide the tooltip by default */
             font-family: 'Lucida Console', 'Monaco', 'monospace';
             opacity: 1;
@@ -160,7 +162,7 @@
         }
 
         .help-tooltip {
-            position: absolute;
+            position: fixed;
             background-color: #3e88c5; /* iMessage blue color */
             color: #fff; /* White text color */
             border-radius: 10px; /* Rounded corners */
@@ -169,14 +171,45 @@
             display: none; /* Hide the tooltip by default */
             font-family: 'Lucida Console', 'Monaco', 'monospace';
             opacity: 1;
+            max-width: 35vw;
         }
     
         .question-mark {
             font-size: 24px; /* Adjust the size of the question mark icon */
             color: #fff; /* White color */
         }
-    </style>
 
+        .pagination {
+            display: flex; /* Display the buttons in a row */
+            justify-content: center; /* Center the buttons horizontally */
+            align-items: center; /* Center the buttons vertically */
+            margin-top: 20px; /* Space between the content and the buttons */
+            
+        }
+
+        .pagination-button {
+            display: block; /* Use block to make the <a> tag fill the wrapper */
+            background-color: #3e88c5; /* Google's blue color */
+            color: white; /* White text color */
+            padding: 10px 20px; /* Padding inside the button */
+            text-align: center; /* Center the text */
+            text-decoration: none; /* Removes underline from the link */
+            font-size: 16px; /* Font size */
+            border-radius: 5px; /* Rounded corners for the button */
+            border: none; /* No border for the button */
+            cursor: pointer; /* Hand cursor on hover */
+            font-weight: bold; /* Bold text */
+            transition: background-color 0.3s, transform 0.2s; /* Smooth background color and scale transition */
+            max-width: 25vw;
+            margin-left: 20px;
+            margin-right: 20px;
+          }
+          
+          .pagination-button:hover {
+            background-color: #3e88c5; /* Darker shade of blue on hover */
+            transform: scale(1.05); /* Slightly increase size on hover */
+          }
+    </style>
 
 </head>
 <body>
@@ -184,5 +217,56 @@
         {% block content %}
         {% endblock %}
     </div>
+
+    <div class="help-circle">
+        <span class="question-mark">?</span>
+    </div>
+    <span class="help-tooltip">
+        {% for key,value in help_text.items()%}
+            {% if value == "None"%}
+                <span class="description">{{ key }}</span>
+            {% else %}
+                <span class={{ value }}>{{ key }}</span>
+            {% endif %}
+        {% endfor %}
+    </span>
+
+    <!-- Move scripts to the end of body -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // JavaScript code for tooltips
+        const tooltips = document.querySelectorAll('.tooltip');
+        tooltips.forEach((tooltip) => {
+            const parent = tooltip.previousElementSibling;
+            parent.addEventListener('mouseover', (e) => {
+                tooltip.style.display = 'block';
+                const rect = parent.getBoundingClientRect();
+                tooltip.style.left = `${e.clientX}px`;
+                tooltip.style.top = `${e.clientY}px`;
+            });
+            parent.addEventListener('mouseout', () => {
+                tooltip.style.display = 'none';
+            });
+        });
+
+        // JavaScript code for help-tooltip
+        const help_tooltips = document.querySelectorAll('.help-tooltip');
+        const helpCircle = document.querySelector('.help-circle');
+        help_tooltips.forEach((help_tooltip) => {
+            const parent = help_tooltip.previousElementSibling;
+            parent.addEventListener('mouseover', (e) => {
+                help_tooltip.style.display = 'block';
+                const tooltipWidth = help_tooltip.offsetWidth;
+                const tooltipHeight = help_tooltip.offsetHeight;
+                help_tooltip.style.left = `${helpCircle.offsetLeft - tooltipWidth}px`;
+                help_tooltip.style.top = `${helpCircle.offsetTop - tooltipHeight}px`;
+            });
+            parent.addEventListener('mouseout', () => {
+                help_tooltip.style.display = 'none';
+            });
+        });
+    });
+</script>
+
 </body>
 </html>
