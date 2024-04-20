@@ -239,13 +239,14 @@
         tooltips.forEach((tooltip) => {
             const parent = tooltip.previousElementSibling;
             parent.addEventListener('mouseover', (e) => {
+                document.body.appendChild(tooltip);
                 tooltip.style.display = 'block';
-                const rect = parent.getBoundingClientRect();
                 tooltip.style.left = `${e.clientX}px`;
                 tooltip.style.top = `${e.clientY}px`;
             });
             parent.addEventListener('mouseout', () => {
                 tooltip.style.display = 'none';
+                document.body.removeChild(tooltip);
             });
         });
 
