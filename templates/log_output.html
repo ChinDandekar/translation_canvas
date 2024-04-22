@@ -1,3 +1,14 @@
+<!--
+This HTML template file is used to display a log output page in the InstructScore Visualizer application.
+
+The file extends the "base.html" template and contains the following blocks:
+- title: Specifies the title of the page.
+- content: Contains the main content of the page.
+
+The content block includes a container div that displays a custom text and a description. The description includes multiple paragraphs with information about the processing of a user's request. It also includes links and placeholders for dynamic values.
+
+The template uses Flask's url_for function to generate URLs dynamically.
+-->
 {% extends "base.html" %}
 
 {% block title %}
@@ -5,15 +16,16 @@ InstructScore Visualizer
 {% endblock %}
 
 {% block content %}
-<div class = "container">
+<div class="container">
     <div class="custom-text">
         Your request is being processed
     </div>
     <div class="description">
-        <p>A Slurm job has been started to evaluate your outputs. You should have recieved an email telling you that a job has been queued </p>
+        <p>A Slurm job has been started to evaluate your outputs. You should have received an email telling you that a job has been queued</p>
         <p>You can also check in /mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{{ memorable_name }}/{{ memorable_name }}_{{ file_name }}_slurm_out.txt (and {{ memorable_name }}_{{ file_name }}_slurm_err.txt) for more details</p>
-        <p>Once the job is done, you will get an email. Come back to this site, click on the second link, and you will find the output json at /mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{{ memorable_name }}/{{ memorable_name }}_instrucscore.json </p>
+        <p>Once the job is done, you will get an email. Come back to this site, click on the second link, and you will find the output json at /mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{{ memorable_name }}/{{ memorable_name }}_instrucscore.json</p>
         <p>Click <a href="{{ url_for('index') }}">here</a> to go back to the main page</p>
     </div>
 </div>
 {% endblock %}
+

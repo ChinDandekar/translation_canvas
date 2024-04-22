@@ -5,6 +5,7 @@ from tqdm import tqdm
 import re
 import argparse
 import os
+from collections import Counter
 
 import json
 
@@ -41,7 +42,22 @@ def get_score(text):
     # print('=' * 50)
     return max(-5 * num_major - num_minor, -25)
 
-def process_text(text, prediction):
+def process_text(text, prediction, error_type_counter):
+    """
+    Process the given text and extract error information.
+
+    Args:
+        text (str): The input text to process.
+        prediction (str): The predicted text.
+        error_type_counter (dict): A dictionary to keep track of error types and their counts.
+
+    Returns:
+        tuple: A tuple containing the following:
+            - pred_render_data (dict): A dictionary mapping phrases to error information.
+            - num_errors (int): The number of errors found in the text.
+            - error_type_counter (dict): The updated error type counter.
+
+    """
     # print(text)
     text = text + '\n'
     num_pattern = r'Your Translation contains (\d+) errors:'
@@ -54,7 +70,7 @@ def process_text(text, prediction):
     pred_render_data = {}
     if num_errors == 0:
         pred_render_data[prediction] = "None"
-        return pred_render_data
+        return pred_render_data, 0, error_type_counter
     # Define regular expression patterns
     error_pattern = r'Error type (\d+): (.+?)\nMajor/minor: (.+?)\nError location (\d+): (.+?)\nExplanation for error \d+: (.+?)\n'
 
@@ -74,6 +90,8 @@ def process_text(text, prediction):
         error_scale = match[2]
         error_location = match[4][1:-1]
         error_explanation = match[5]
+        
+        error_type_counter[error_type] += 1
 
         queries.append(error_location)
         query_dict.append({
@@ -95,7 +113,7 @@ def process_text(text, prediction):
             pred_render_data[phrase] = "None"
     
         
-    return pred_render_data
+    return pred_render_data, num_errors, error_type_counter
 
 
 model_path = '/mnt/taurus/home/guangleizhu/instructscore_spanish/new_ft/checkpoint-565'
@@ -132,8 +150,9 @@ output_json = []
 
 
 
-
 # run inference on the eval_dataset
+total_errors = 0
+error_type_counter = Counter()
 for i in tqdm(range(0, len(eval_dataset), batch_size)):
     eval_batch = [eval_dataset[j]['input'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
     if None in eval_batch:
@@ -148,14 +167,34 @@ for i in tqdm(range(0, len(eval_dataset), batch_size)):
         for j in range(len(outputs)):
             text = tokenizer.decode(outputs[j], skip_special_tokens=True)
             prediction = eval_dataset[i+j]['prediction']
-            pred_render_dict = process_text(text, prediction)
+            pred_render_dict, num_errors, error_type_counter = process_text(text, prediction, error_type_counter)
+            total_errors += num_errors
             reference = eval_dataset[i+j]['reference']
             output_json.append({
                 'prediction': pred_render_dict,
                 'reference': reference,
             })
+    if i < 100:
+        output_json.append({
+            'stats': {
+                'num_errors': total_errors,
+                'most_common_errors': error_type_counter.most_common(3),
+                'average_num_errors': total_errors/len(output_json)
+            }
+        })
+        print("overwriting last dump")
+        json.dump(output_json, open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json", "w"), indent=2)
+        output_json.pop(-1)
 
-
-
-print(output_json)
+output_json.append({
+            'stats': {
+                'num_errors': total_errors,
+                'most_common_errors': error_type_counter.most_common(3),
+                'average_num_errors': total_errors/((i+1)*batch_size)
+            }
+        })
 json.dump(output_json, open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json", "w"), indent=2)
+     
+
+
+

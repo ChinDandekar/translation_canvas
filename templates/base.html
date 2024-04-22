@@ -1,24 +1,38 @@
+<!-- 
+    This is the base HTML template file for the InstructScore Visualizer application.
+    It defines the basic structure and styling of the web page.
+-->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Meta tags -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Title -->
     <title>{% block title %}{% endblock %}</title>
+
+    <!-- Styles -->
     <style>
+        /* General styling for the page */
         body {
-            margin: auto; /* Remove default margin */
-            padding: 0; /* Remove default padding */
+            /* Background image */
             background-image: url('../static/background.jpg');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            background-attachment: fixed; /* Fix the background image */
+            background-attachment: fixed;
+            /* Center content vertically and horizontally */
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
+            margin: 0;
+            padding: 0;
         }
 
+        /* Fixed header */
         .fixed-header {
             position: fixed;
             top: 0;
@@ -27,13 +41,15 @@
             background-color: #333;
             color: white;
             padding: 10px;
-            z-index: 1000; /* Ensure the header stays on top of other content */
+            z-index: 1000;
         }
 
+        /* Content holder */
         .content-holder {
             padding-top: 500px;
         }
 
+        /* Description text */
         .description {
             font-size: 15px;
             color: #eeee;
@@ -41,6 +57,8 @@
             margin-bottom: 20px;
             font-family: 'Lucida Console', 'Monaco', 'monospace';
         }
+
+        /* Custom text */
         .custom-text {
             font-size: 30px;
             font-weight: bold;
@@ -48,32 +66,35 @@
             justify-content: center;
             font-family: 'Lucida Console', 'Monaco', 'monospace';
         }
+
+        /* Container */
         .container {
             text-align: center;
-            background-color: #282828; /* iMessage blue color */
-            color: #fff; /* White text color */
-            border-radius: 10px; /* Rounded corners */
-            padding: 10px 20px; /* Padding inside the bubble */
+            background-color: #282828;
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 20px;
             margin-bottom: 60px;
             opacity: 0.95;
-            margin-top: 10vh; /* Adjust the top margin to vertically center the container */
-            z-index: 1; /* Set higher z-index to ensure it covers other elements */
+            margin-top: 10vh;
+            z-index: 1;
             position: relative;
         }
-        
+
+        /* Tooltip */
         .tooltip {
             position: fixed;
-            background-color: #3e88c5; /* iMessage blue color */
-            color: #fff; /* White text color */
-            border-radius: 10px; /* Rounded corners */
-            padding: 10px 20px; /* Padding inside the bubble */
-            z-index: 2; /* Set higher z-index to ensure it covers other elements */
-            display: none; /* Hide the tooltip by default */
+            background-color: #3e88c5;
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 20px;
+            z-index: 2;
+            display: none;
             font-family: 'Lucida Console', 'Monaco', 'monospace';
             opacity: 1;
         }
-        
-        
+
+        /* Input form */
         .input-form {
             padding: 20px;
             border-radius: 5px;
@@ -81,8 +102,8 @@
             flex-direction: column;
             align-items: center;
         }
-        
-        
+
+        /* Input field */
         .input-field {
             width: 100%;
             padding: 10px;
@@ -91,39 +112,43 @@
             border-radius: 5px;
             box-sizing: border-box;
         }
-        
-        .submit-button-wrapper {
-            display: inline-block; /* Wrap content */
-            padding: 5px; /* Space between the wrapper border and the button */
-            background-color: #000; /* Light grey background for the wrapper */
-            border-radius: 8px; /* Rounded corners for the wrapper */
-            width: 100%; /* Ensures the button container spans the full width */
-            display: flex;
-            justify-content: right; /* Center the button horizontally */
-            align-items: end; /* Aligns the button container to the end (bottom) of its parent (.Home) */
-            padding-bottom: 0vh; /* Adjust this value to move the button up into the bottom third of the screen */
-          }
-          
-          .submit-button {
-            display: block; /* Use block to make the <a> tag fill the wrapper */
-            background-color: #6480E5; /* Google's blue color */
-            color: white; /* White text color */
-            padding: 10px 20px; /* Padding inside the button */
-            text-align: center; /* Center the text */
-            text-decoration: none; /* Removes underline from the link */
-            font-size: 16px; /* Font size */
-            border-radius: 5px; /* Rounded corners for the button */
-            border: none; /* No border for the button */
-            cursor: pointer; /* Hand cursor on hover */
-            font-weight: bold; /* Bold text */
-            transition: background-color 0.3s, transform 0.2s; /* Smooth background color and scale transition */
-          }
-          
-          .submit-button:hover {
-            background-color: #6480E5; /* Darker shade of blue on hover */
-            transform: scale(1.05); /* Slightly increase size on hover */
-          }
 
+        /* Submit button wrapper */
+        .submit-button-wrapper {
+            display: inline-block;
+            padding: 5px;
+            background-color: #000;
+            border-radius: 8px;
+            width: 100%;
+            display: flex;
+            justify-content: right;
+            align-items: end;
+            padding-bottom: 0vh;
+        }
+
+        /* Submit button */
+        .submit-button {
+            display: block;
+            background-color: #6480E5;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        /* Submit button hover */
+        .submit-button:hover {
+            background-color: #6480E5;
+            transform: scale(1.05);
+        }
+
+        /* Prediction reference */
         .pred-ref {
             font-size: 20px;
             font-weight: bold;
@@ -131,89 +156,135 @@
             text-align: left;
             font-family: 'Lucida Console', 'Monaco', 'monospace';
         }
+
+        /* Red text */
         .red-text {
             font-size: 15px;
             color: rgb(202, 1, 1);
             cursor: pointer;
             font-family: 'Lucida Console', 'Monaco', 'monospace';
         }
-    
+
+        /* Orange text */
         .orange-text {
             font-size: 15px;
             color: #c27f03;
             cursor: pointer;
             font-family: 'Lucida Console', 'Monaco', 'monospace';
         }
-    
-        
 
+        /* Help circle */
         .help-circle {
-            position: fixed; /* Position the circle fixed on the viewport */
-            bottom: 20px; /* Distance from the bottom */
-            right: 20px; /* Distance from the right */
-            width: 50px; /* Width of the circle */
-            height: 50px; /* Height of the circle */
-            border-radius: 50%; /* Make it a circle */
-            background-color: #3e88c5; /* White background color */
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #3e88c5;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
         }
 
+        /* Help tooltip */
         .help-tooltip {
             position: fixed;
-            background-color: #3e88c5; /* iMessage blue color */
-            color: #fff; /* White text color */
-            border-radius: 10px; /* Rounded corners */
-            padding: 10px 20px; /* Padding inside the bubble */
-            z-index: 100000; /* Set higher z-index to ensure it covers other elements */
-            display: none; /* Hide the tooltip by default */
+            background-color: #3e88c5;
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 20px;
+            z-index: 100000;
+            display: none;
             font-family: 'Lucida Console', 'Monaco', 'monospace';
             opacity: 1;
             max-width: 35vw;
         }
-    
+
+        /* Question mark icon */
         .question-mark {
-            font-size: 24px; /* Adjust the size of the question mark icon */
-            color: #fff; /* White color */
+            font-size: 24px;
+            color: #fff;
         }
 
+        /* Pagination */
         .pagination {
-            display: flex; /* Display the buttons in a row */
-            justify-content: center; /* Center the buttons horizontally */
-            align-items: center; /* Center the buttons vertically */
-            margin-top: 20px; /* Space between the content and the buttons */
-            
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
         }
 
+        /* Pagination button */
         .pagination-button {
-            display: block; /* Use block to make the <a> tag fill the wrapper */
-            background-color: #3e88c5; /* Google's blue color */
-            color: white; /* White text color */
-            padding: 10px 20px; /* Padding inside the button */
-            text-align: center; /* Center the text */
-            text-decoration: none; /* Removes underline from the link */
-            font-size: 16px; /* Font size */
-            border-radius: 5px; /* Rounded corners for the button */
-            border: none; /* No border for the button */
-            cursor: pointer; /* Hand cursor on hover */
-            font-weight: bold; /* Bold text */
-            transition: background-color 0.3s, transform 0.2s; /* Smooth background color and scale transition */
+            display: block;
+            background-color: #3e88c5;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s, transform 0.2s;
             max-width: 25vw;
             margin-left: 20px;
             margin-right: 20px;
-          }
-          
-          .pagination-button:hover {
-            background-color: #3e88c5; /* Darker shade of blue on hover */
-            transform: scale(1.05); /* Slightly increase size on hover */
-          }
-    </style>
+        }
 
+        /* Pagination button hover */
+        .pagination-button:hover {
+            background-color: #3e88c5;
+            transform: scale(1.05);
+        }
+
+        /* Stats circle */
+        .stats-circle {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #3e88c5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        /* Stats circle image */
+        .stats-circle-image {
+            object-fit: contain;
+            width: 75%;
+            height: 75%;
+            border-radius: 50%;
+        }
+
+        /* Stats tooltip */
+        .stats-tooltip {
+            position: fixed;
+            background-color: #3e88c5;
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 20px;
+            z-index: 100000;
+            display: none;
+            font-family: 'Lucida Console', 'Monaco', 'monospace';
+            opacity: 1;
+            max-width: 35vw;
+        }
+    </style>
 </head>
 <body>
     <div class="content">
+        <!-- Content goes here -->
+    </div>
+</body>
+</html>
         {% block content %}
         {% endblock %}
     </div>
@@ -231,10 +302,10 @@
         {% endfor %}
     </span>
 
-    <!-- Move scripts to the end of body -->
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // JavaScript code for tooltips
+        // JavaScript code to make tooltips appear on hover
         const tooltips = document.querySelectorAll('.tooltip');
         tooltips.forEach((tooltip) => {
             const parent = tooltip.previousElementSibling;
@@ -250,7 +321,7 @@
             });
         });
 
-        // JavaScript code for help-tooltip
+        // JavaScript code to make help-tooltips appear on hover
         const help_tooltips = document.querySelectorAll('.help-tooltip');
         const helpCircle = document.querySelector('.help-circle');
         help_tooltips.forEach((help_tooltip) => {
@@ -264,6 +335,23 @@
             });
             parent.addEventListener('mouseout', () => {
                 help_tooltip.style.display = 'none';
+            });
+        });
+
+        // JavaScript code to make stats-tooltips appear on hover
+        const stats_tooltips = document.querySelectorAll('.stats-tooltip');
+        const statsCircle = document.querySelector('.stats-circle');
+        stats_tooltips.forEach((stats_tooltip) => {
+            const parent = stats_tooltip.previousElementSibling;
+            parent.addEventListener('mouseover', (e) => {
+                stats_tooltip.style.display = 'block';
+                const tooltipWidth = stats_tooltip.offsetWidth;
+                const tooltipHeight = stats_tooltip.offsetHeight;
+                stats_tooltip.style.left = `${statsCircle.offsetWidth}px`;
+                stats_tooltip.style.top = `${statsCircle.offsetTop - tooltipHeight}px`;
+            });
+            parent.addEventListener('mouseout', () => {
+                stats_tooltip.style.display = 'none';
             });
         });
     });

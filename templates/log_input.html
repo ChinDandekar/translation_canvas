@@ -1,3 +1,25 @@
+<!--
+This HTML template file is used for rendering a form to input log file details in the InstructScore Visualizer application.
+
+The template extends the "base.html" template and defines blocks for the title and content.
+
+The form allows the user to input the path to the .log file, the source language, target language, a unique memorable name, and their email.
+
+The form is submitted to the 'process_log_input' URL using the POST method.
+
+The input fields are as follows:
+- user_input: The path to the .log file (e.g. /path/to/instances.log)
+- source_lang: The source language
+- target_lang: The target language
+- memorable_name: A unique memorable name for the log file
+- email: The user's email address
+
+The form also includes a submit button to submit the form.
+
+Make sure to include /mnt/taurus, /mnt/aries, or /mnt/gemini in the path when entering the log file path.
+
+This template is part of the InstructScore Visualizer application.
+-->
 {% extends "base.html" %}
 
 {% block title %}

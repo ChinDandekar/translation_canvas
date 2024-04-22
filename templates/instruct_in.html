@@ -1,3 +1,24 @@
+<!--
+This HTML template file is used for rendering the "InstructScore Visualizer" page. It extends the "base.html" template.
+
+The template consists of the following blocks:
+- title: Sets the title of the page to "InstructScore Visualizer".
+- content: Contains the main content of the page.
+
+Within the content block, there is a container div that holds a description and a form. The form allows the user to input a memorable name for Instructscore evaluation. When the form is submitted, it sends a POST request to the "visualize_instruct" URL.
+
+HTML structure:
+- container: A div that contains the description and the form.
+    - description: A div that displays a message asking the user to input the memorable name.
+    - form: A form element with method="POST" and action="{{ url_for('visualize_instruct') }}". It contains an input field for the name and a submit button.
+
+Example usage:
+- User inputs a descriptive name in the input field.
+- User clicks the submit button.
+- The form data is sent to the server for further processing.
+
+Note: This code snippet is a part of a larger project and may require additional context to fully understand its functionality.
+-->
 {% extends "base.html" %}
 
 {% block title %}

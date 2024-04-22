@@ -2,6 +2,7 @@ import re
 import subprocess
 import json
 import gpustat
+from collections import Counter
 
 
 def split_sentence_with_queries(sentence, queries):
@@ -42,5 +43,23 @@ def get_free_gpus():
 
 
 
-free_gpu_indices = get_free_gpus()
-print(free_gpu_indices)
+# free_gpu_indices = get_free_gpus()
+# print(free_gpu_indices)
+
+def test_counter():
+    test_counter = Counter()
+    test_counter['test'] += 1
+    print(test_counter.most_common(1))
+
+def test_overwrite():
+    some_json = {
+        "test": "test",
+        "test2": "test2"
+    }
+    json.dump(some_json, open("test.json", "w"), indent=2)
+    some_json = {
+        "test": "test3",
+        "test2": "test4"
+    }
+    json.dump(some_json, open("test.json", "w"), indent=2)
+test_overwrite()

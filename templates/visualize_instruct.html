@@ -1,3 +1,12 @@
+<!-- 
+    This HTML template file is used for visualizing the InstructScore data.
+    It extends the "base.html" template and contains blocks for title and content.
+    The content includes a loop to display predictions and references, as well as statistics and pagination controls.
+    The predictions are displayed with error information, and the references are displayed separately.
+    The statistics include the total number of errors, average number of errors per prediction, and most frequent types of errors.
+    The pagination controls allow the user to navigate between pages of data.
+    The hidden form and JavaScript functions are used to update the file value and submit the form when navigating between pages.
+-->
 {% extends "base.html" %}
 
 {% block title %}
@@ -41,6 +50,20 @@ InstructScore Visualizer
                 </div>
             </div>
         {% endfor %}
+
+        <div class="stats-circle">
+            <img src="{{ url_for('static', filename='stats.png') }}" class="stats-circle-image">
+        </div>
+        <span class="stats-tooltip">
+            <p>Total number of errors: {{ num_errors }}</p>
+            <p>Average number of errors per prediction: {{ avg_errors }}</p>
+            <p> Most frequent types of errors: </p>
+                {% for error_type in most_common_errors %}
+                    <p>{{ error_type[0] }}: {{ error_type[1] }} times</p>
+                    {% if not loop.last %} {% endif %}
+                {% endfor %}
+            
+        </span>
 
         <!-- Pagination controls -->
             <!-- Pagination controls -->
