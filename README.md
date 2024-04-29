@@ -9,12 +9,12 @@ Once the job is done running, the webapp renders the prediction-reference pair, 
 
 # To use
 
-'''
+```
 git clone https://github.com/ChinDandekar/instructscore_visualizer
 cd instructscore_visualizer
 conda env create -f environment.yml
 conda activate instructscore_visualizer_env
 flask --app instructscore_visualizer run --debug
-'''
+```
 
 
