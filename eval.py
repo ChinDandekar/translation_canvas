@@ -59,6 +59,7 @@ def process_text(text, prediction, error_type_counter):
 
     """
     # print(text)
+    se_score = 0
     text = text + '\n'
     num_pattern = r'Your Translation contains (\d+) errors:'
     num_errors = re.search(num_pattern, text)
@@ -70,7 +71,7 @@ def process_text(text, prediction, error_type_counter):
     pred_render_data = {}
     if num_errors == 0:
         pred_render_data[prediction] = "None"
-        return pred_render_data, 0, error_type_counter
+        return pred_render_data, 0, error_type_counter, 0
     # Define regular expression patterns
     error_pattern = r'Error type (\d+): (.+?)\nMajor/minor: (.+?)\nError location (\d+): (.+?)\nExplanation for error \d+: (.+?)\n'
 
@@ -100,6 +101,10 @@ def process_text(text, prediction, error_type_counter):
             'error_location': error_location,
             'error_explanation': error_explanation
         })
+        if error_scale == "Major":
+            se_score -= 5
+        else:
+            se_score -= 1
         
     phrases = split_sentence_with_queries(prediction, queries)
     for phrase in phrases:
@@ -113,7 +118,7 @@ def process_text(text, prediction, error_type_counter):
             pred_render_data[phrase] = "None"
     
         
-    return pred_render_data, num_errors, error_type_counter
+    return pred_render_data, num_errors, error_type_counter, se_score
 
 
 model_path = '/mnt/taurus/home/guangleizhu/instructscore_spanish/new_ft/checkpoint-565'
@@ -153,6 +158,7 @@ output_json = []
 # run inference on the eval_dataset
 total_errors = 0
 error_type_counter = Counter()
+se_score_total = 0
 for i in tqdm(range(0, len(eval_dataset), batch_size)):
     eval_batch = [eval_dataset[j]['input'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
     if None in eval_batch:
@@ -167,8 +173,9 @@ for i in tqdm(range(0, len(eval_dataset), batch_size)):
         for j in range(len(outputs)):
             text = tokenizer.decode(outputs[j], skip_special_tokens=True)
             prediction = eval_dataset[i+j]['prediction']
-            pred_render_dict, num_errors, error_type_counter = process_text(text, prediction, error_type_counter)
+            pred_render_dict, num_errors, error_type_counter, se_score = process_text(text, prediction, error_type_counter)
             total_errors += num_errors
+            se_score_total += se_score
             reference = eval_dataset[i+j]['reference']
             output_json.append({
                 'prediction': pred_render_dict,
@@ -179,7 +186,8 @@ for i in tqdm(range(0, len(eval_dataset), batch_size)):
             'stats': {
                 'num_errors': total_errors,
                 'most_common_errors': error_type_counter.most_common(3),
-                'average_num_errors': total_errors/len(output_json)
+                'average_num_errors': total_errors/len(output_json),
+                'se_score': se_score_total/len(output_json)
             }
         })
         print("overwriting last dump")
@@ -190,7 +198,8 @@ output_json.append({
             'stats': {
                 'num_errors': total_errors,
                 'most_common_errors': error_type_counter.most_common(3),
-                'average_num_errors': total_errors/((i+1)*batch_size)
+                'average_num_errors': total_errors/((i+1)*batch_size),
+                'se_score': se_score_total/((i+1)*batch_size)
             }
         })
 json.dump(output_json, open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json", "w"), indent=2)

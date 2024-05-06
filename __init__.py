@@ -95,7 +95,7 @@ def create_app(test_config=None):
         # Calculate the starting index based on the page number
         start_index = (page_number - 1) * ITEMS_PER_PAGE
         file = request.form['file']
-        input_data, total_items, num_errors, most_common_errors, avg_errors = instructscore_to_dict(file, start_index, ITEMS_PER_PAGE)
+        input_data, total_items, num_errors, most_common_errors, avg_errors, se_score = instructscore_to_dict(file, start_index, ITEMS_PER_PAGE)
     
         # Calculate total number of pages
         total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
@@ -107,6 +107,6 @@ def create_app(test_config=None):
             'are minor errors. Put your mouse over the colored text to see more details about the error.': "None",
             'Hover over the stats button on the bottom left of the screen to see some statistics about the data.': 'None',
         }
-        return render_template('visualize_instruct.html', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, file=file, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors)
+        return render_template('visualize_instruct.html', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, file=file, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score)
     
     return app

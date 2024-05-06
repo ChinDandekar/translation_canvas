@@ -155,6 +155,7 @@ def instructscore_to_dict(memorable_name, start_index, items_per_page):
         stats = data[-1]["stats"]
         num_errors = stats["num_errors"]
         most_common_errors = stats["most_common_errors"]
+        se_score = stats["se_score"]
         avg_errors = num_errors/total_length       
         
-    return render_data, total_length, num_errors, most_common_errors, avg_errors
+    return render_data, total_length, num_errors, most_common_errors, avg_errors, se_score
