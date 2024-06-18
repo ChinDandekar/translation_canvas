@@ -197,7 +197,7 @@ for i in tqdm(range(0, len(eval_dataset), batch_size)):
 output_json.append({
             'stats': {
                 'num_errors': total_errors,
-                'most_common_errors': error_type_counter.most_common(3),
+                'most_common_errors': error_type_counter.most_common(None),
                 'average_num_errors': total_errors/((i+1)*batch_size),
                 'se_score': se_score_total/((i+1)*batch_size)
             }

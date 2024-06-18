@@ -1,0 +1,22 @@
+{
+    "index": {
+        "This is the help button.\n Hover over it to see the help text for every page.": "None"
+    },
+    "process_log_input": {
+        "Make sure to remember your memorable name, this is how you will access your results. You will receive an email when your results are ready.": "None"
+    },
+    "log_input": {
+        "Make sure that the file is in the correct format.\n The file should be a .log file. Also make sure to use a descriptive and memorable name here (one that you can remember for at least 50 minutes). ": "None"
+    },
+    "instruct_in": {
+        "I hope you remembered the name you had assigned! If not, you can find it in your email, search for an email saying something like Slurm Job_id=(Some number) Name=(Your memorable name) has finished.": "None"
+    },
+    "visualize_instruct": {
+        "Each block contains a prediction and reference pair. The": "None",
+        "red text": "red-text",
+        "is major errors and ": "None",
+        "orange text": "orange-text",
+        "are minor errors. Put your mouse over the colored text to see more details about the error.": "None",
+        "Hover over the stats button on the bottom left of the screen to see some statistics about the data.": "None"
+    }
+}

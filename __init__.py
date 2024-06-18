@@ -1,7 +1,6 @@
 
 import os
 import sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 import pandas as pd
 import json
@@ -9,8 +8,11 @@ from instructscore_visualizer.utils import convert_log_to_json, create_and_exec_
 
 from flask import Flask, render_template, request
 
+path_to_file = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(path_to_file)
 # Define the number of items per page
 ITEMS_PER_PAGE = 5
+help_text_json = json.load(open(os.path.join(path_to_file, 'help_text.json')))
 
 def create_app(test_config=None):
     """
@@ -32,7 +34,7 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
-        help_text = {"This is the help button.\n Hover over it to see the help text for every page.": "None"}
+        help_text = help_text_json["index"]
         return render_template('index.html', title='InstructScore Visualizer', help_text=help_text)
     
     @app.route('/process', methods=['POST'])
@@ -50,9 +52,7 @@ def create_app(test_config=None):
         email = request.form['email']
         new_file=convert_log_to_json(file, src, tgt, name)
         create_and_exec_slurm(name, new_file, email)
-        help_text = {
-            "Make sure to remember your memorable name, this is how you will access your results. You will receive an email when your results are ready.": "None"
-        }
+        help_text = help_text_json["process_log_input"]
         return render_template('log_output.html', memorable_name=name, file_name=new_file, help_text=help_text)
     
     @app.route('/log_input', methods=['GET'])
@@ -63,9 +63,7 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
-        help_text = {
-            "Make sure that the file is in the correct format.\n The file should be a .log file. Also make sure to use a descriptive and memorable name here (one that you can remember for at least 50 minutes). ": "None"
-                     }
+        help_text = help_text_json["log_input"]
         return render_template('log_input.html', help_text=help_text)
     
     @app.route('/instruct_out', methods=['GET'])
@@ -76,9 +74,7 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
-        help_text = {
-            "I hope you remembered the name you had assigned! If not, you can find it in your email, search for an email saying something like Slurm Job_id=(Some number) Name=(Your memorable name) has finished.": "None"
-        }
+        help_text = help_text_json["instruct_in"]
         return render_template('instruct_in.html', help_text=help_text)
     
     @app.route('/visualize_instruct', methods=['POST','GET'])
@@ -99,14 +95,7 @@ def create_app(test_config=None):
     
         # Calculate total number of pages
         total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
-        help_text = {
-            'Each block contains a prediction and reference pair. The': "None",
-            'red text': "red-text",
-            'is major errors and ': "None",
-            'orange text': "orange-text",
-            'are minor errors. Put your mouse over the colored text to see more details about the error.': "None",
-            'Hover over the stats button on the bottom left of the screen to see some statistics about the data.': 'None',
-        }
+        help_text = help_text_json["visualize_instruct"]
         return render_template('visualize_instruct.html', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, file=file, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score)
     
     return app

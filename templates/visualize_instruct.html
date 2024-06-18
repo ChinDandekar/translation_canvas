@@ -60,7 +60,6 @@ InstructScore Visualizer
             <p> Most frequent types of errors: </p>
                 {% for error_type in most_common_errors %}
                     <p>{{ error_type[0] }}: {{ error_type[1] }} times</p>
-                    {% if not loop.last %} {% endif %}
                 {% endfor %}
             <p>SEScore: {{ se_score }}</p>
             
