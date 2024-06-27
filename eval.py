@@ -1,13 +1,19 @@
 import torch
 from datasets import load_dataset
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import LlamaForCausalLM, LlamaTokenizer
+from InstructScore_SEScore3 import InstructScore
 from tqdm import tqdm
 import re
 import argparse
 import os
 from collections import Counter
+from dotenv import load_dotenv
 
 import json
+import sys
+
+sys.setrecursionlimit(10000000)
+print(sys.getrecursionlimit())
 
 
 KEY_INSTANCES = "instances"
@@ -16,6 +22,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--file_name', type=str, default=0)
 parser.add_argument('--memorable_name', type=str, default=0)
 args = parser.parse_args()
+
+load_dotenv()
 
 def split_sentence_with_queries(sentence, queries):
     # Create a regular expression pattern to match any of the queries
@@ -58,7 +66,7 @@ def process_text(text, prediction, error_type_counter):
             - error_type_counter (dict): The updated error type counter.
 
     """
-    # print(text)
+    print(text)
     se_score = 0
     text = text + '\n'
     num_pattern = r'Your Translation contains (\d+) errors:'
@@ -121,7 +129,8 @@ def process_text(text, prediction, error_type_counter):
     return pred_render_data, num_errors, error_type_counter, se_score
 
 
-model_path = '/mnt/taurus/home/guangleizhu/instructscore_spanish/new_ft/checkpoint-565'
+model_path = 'xu1998hz/InstructScore'
+print(os.environ["HF_HOME"])
 
 file_name = args.file_name
 memorable_name = args.memorable_name
@@ -138,15 +147,16 @@ data = load_dataset(
     field=KEY_INSTANCES,
     split="train",
     use_auth_token=None,
+    cache_dir=os.environ["HF_HOME"]
 )
 print(f"This is data: {data}")
 
 # naive partition on training and validation set, 10,000 vs 500
 eval_dataset=data
 
-
-model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16).to('cuda')
-tokenizer = AutoTokenizer.from_pretrained(model_path)
+model_path = 'xu1998hz/InstructScore'
+model = LlamaForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16, cache_dir=os.environ["HF_HOME"]).to('cuda')
+tokenizer = LlamaTokenizer.from_pretrained(model_path, cache_dir=os.environ["HF_HOME"])
 tokenizer.pad_token = tokenizer.eos_token
 
 gt_scores, pred_scores = [], []

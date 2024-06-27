@@ -4,6 +4,8 @@ import string
 import re
 import subprocess
 
+path_to_file = os.path.dirname(os.path.abspath(__file__))
+
 
 def convert_log_to_json(file, src_lang, tgt_lang, memorable_name):
     """
@@ -38,9 +40,9 @@ def convert_log_to_json(file, src_lang, tgt_lang, memorable_name):
         all_outputs.append({"input": inputString, "reference": output[1], "prediction": output[0]})
 
     ansJson["instances"] = all_outputs
-    if not os.path.exists(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}"):
-        os.mkdir(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}")
-    json.dump(ansJson, open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{new_file}.json", "w"), indent=2)
+    if not os.path.exists(f"{path_to_file}/jobs/{memorable_name}"):
+        os.mkdir(f"{path_to_file}/jobs/{memorable_name}")
+    json.dump(ansJson, open(f"{path_to_file}/jobs/{memorable_name}/{new_file}.json", "w"), indent=2)
     return new_file
     
 def get_free_gpus():
@@ -70,7 +72,7 @@ def create_and_exec_slurm(memorable_name, file_name, email):
         int: The exit status of the job execution.
     """
     free_gpus = get_free_gpus()
-    with open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_{file_name}.sh", "w") as f:
+    with open(f"{path_to_file}/jobs/{memorable_name}/{memorable_name}_{file_name}.sh", "w") as f:
         f.write("#!/usr/bin/env bash\n\n\n" + 
                 "#SBATCH --nodes=1\n" +
                 "#SBATCH --ntasks=1\n" + 
@@ -82,17 +84,17 @@ def create_and_exec_slurm(memorable_name, file_name, email):
                 "#SBATCH --account=chinmay\n" +
                 "#SBATCH --mail-type=ALL\n" +
                 f"#SBATCH --mail-user={email}\n" +
-                f"#SBATCH --output=/mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{memorable_name}/{memorable_name}_{file_name}_slurm_out.txt\n" + 
-                f"#SBATCH --error=/mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{memorable_name}/{memorable_name}_{file_name}_slurm_err.txt")
+                f"#SBATCH --output={path_to_file}/jobs/{memorable_name}/{memorable_name}_{file_name}_slurm_out.txt\n" + 
+                f"#SBATCH --error={path_to_file}/jobs/{memorable_name}/{memorable_name}_{file_name}_slurm_err.txt")
         
         f.write("\n\n")
         visible_devices = ",".join([str(i) for i in free_gpus])
         f.write(f"export CUDA_VISIBLE_DEVICES={visible_devices}\n")
-        f.write(f'python {os.path.dirname(os.path.abspath(__file__))}/eval.py --file_name "/mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{memorable_name}/{file_name}.json" --memorable_name {memorable_name}')
+        f.write(f'python {path_to_file}/eval.py --file_name "{path_to_file}/jobs/{memorable_name}/{file_name}.json" --memorable_name {memorable_name}')
     pid = os.fork()
     if pid==0:
-        os.chdir(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}")
-        os.system(f"sbatch {os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_{file_name}.sh")
+        os.chdir(f"{path_to_file}/jobs/{memorable_name}")
+        os.system(f"sbatch {path_to_file}/jobs/{memorable_name}/{memorable_name}_{file_name}.sh")
         os._exit(0)
     else:
         os.waitpid(pid, 0)
@@ -136,7 +138,7 @@ def instructscore_to_dict(memorable_name, start_index, items_per_page):
             - most_common_errors (list): The most common errors in the data.
             - avg_errors (float): The average number of errors per data item.
     """
-    file_path = f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json"
+    file_path = f"{path_to_file}/jobs/{memorable_name}/{memorable_name}_instructscore.json"
     
     with open(file_path) as f:
         data = json.load(f)

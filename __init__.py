@@ -66,7 +66,7 @@ def create_app(test_config=None):
         help_text = help_text_json["log_input"]
         return render_template('log_input.html', help_text=help_text)
     
-    @app.route('/instruct_out', methods=['GET'])
+    @app.route('/instruct_in', methods=['GET'])
     def instruct_in():
         """
         Render the instruct_in.html template.
@@ -86,16 +86,24 @@ def create_app(test_config=None):
             str: The rendered HTML template.
         """
         # Get page number from the request, default to 1 if not provided
-        page_number = int(request.form.get('current_page', 1))
-        
-        # Calculate the starting index based on the page number
-        start_index = (page_number - 1) * ITEMS_PER_PAGE
         file = request.form['file']
-        input_data, total_items, num_errors, most_common_errors, avg_errors, se_score = instructscore_to_dict(file, start_index, ITEMS_PER_PAGE)
-    
-        # Calculate total number of pages
-        total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
-        help_text = help_text_json["visualize_instruct"]
-        return render_template('visualize_instruct.html', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, file=file, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score)
+        file_path = f"{path_to_file}/jobs/{file}/{file}_instructscore.json"
+        # print(file)
+        if os.path.exists(file_path):
+
+            page_number = int(request.form.get('current_page', 1))
+            
+            # Calculate the starting index based on the page number
+            start_index = (page_number - 1) * ITEMS_PER_PAGE
+            file = request.form['file']
+            input_data, total_items, num_errors, most_common_errors, avg_errors, se_score = instructscore_to_dict(file, start_index, ITEMS_PER_PAGE)
+        
+            # Calculate total number of pages
+            total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
+            help_text = help_text_json["visualize_instruct"]
+            return render_template('visualize_instruct.html', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, file=file, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score)
+        
+        else:
+            return render_template('error.html', error_message="File not found")
     
     return app
