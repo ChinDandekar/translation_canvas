@@ -90,6 +90,7 @@ def create_and_exec_slurm(memorable_name, file_name, email):
         f.write("\n\n")
         visible_devices = ",".join([str(i) for i in free_gpus])
         f.write(f"export CUDA_VISIBLE_DEVICES={visible_devices}\n")
+        f.write(f"cd {path_to_file}/..\n")
         f.write(f'python {path_to_file}/eval.py --file_name "{path_to_file}/jobs/{memorable_name}/{file_name}.json" --memorable_name {memorable_name}')
     pid = os.fork()
     if pid==0:

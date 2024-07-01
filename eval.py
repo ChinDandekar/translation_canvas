@@ -1,7 +1,5 @@
 import torch
 from datasets import load_dataset
-from transformers import LlamaForCausalLM, LlamaTokenizer
-from InstructScore_SEScore3 import InstructScore
 from tqdm import tqdm
 import re
 import argparse
@@ -15,6 +13,9 @@ import sys
 sys.setrecursionlimit(10000000)
 print(sys.getrecursionlimit())
 
+sys.path.append("/mnt/taurus/data1/chinmay")
+
+
 
 KEY_INSTANCES = "instances"
 
@@ -24,6 +25,10 @@ parser.add_argument('--memorable_name', type=str, default=0)
 args = parser.parse_args()
 
 load_dotenv()
+
+from InstructScore_SEScore3.InstructScore import InstructScore
+
+
 
 def split_sentence_with_queries(sentence, queries):
     # Create a regular expression pattern to match any of the queries
@@ -130,7 +135,6 @@ def process_text(text, prediction, error_type_counter):
 
 
 model_path = 'xu1998hz/InstructScore'
-print(os.environ["HF_HOME"])
 
 file_name = args.file_name
 memorable_name = args.memorable_name
@@ -139,7 +143,7 @@ if file_name == 0:
 else:
     print(file_name)
 
-batch_size = 20
+batch_size = 1
 extensions = "json"
 data = load_dataset(
     extensions,
@@ -147,50 +151,51 @@ data = load_dataset(
     field=KEY_INSTANCES,
     split="train",
     use_auth_token=None,
-    cache_dir=os.environ["HF_HOME"]
+    cache_dir=os.environ["HF_ASSETS_CACHE"]
 )
 print(f"This is data: {data}")
 
 # naive partition on training and validation set, 10,000 vs 500
 eval_dataset=data
 
-model_path = 'xu1998hz/InstructScore'
-model = LlamaForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16, cache_dir=os.environ["HF_HOME"]).to('cuda')
-tokenizer = LlamaTokenizer.from_pretrained(model_path, cache_dir=os.environ["HF_HOME"])
-tokenizer.pad_token = tokenizer.eos_token
+# model_path = 'xu1998hz/InstructScore'
+# model = LlamaForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16, cache_dir=os.environ["HF_HOME"]).to('cuda')
+# tokenizer = LlamaTokenizer.from_pretrained(model_path, cache_dir=os.environ["HF_HOME"])
+# tokenizer.pad_token = tokenizer.eos_token
 
 gt_scores, pred_scores = [], []
 
 output_json = []
 
 
+task_type = "mt_en-es"
+scorer = InstructScore(task_type=task_type, batch_size=batch_size, cache_dir='/mnt/gemini/data1/chinmay/transformers_cache')
 
-# run inference on the eval_dataset
 total_errors = 0
 error_type_counter = Counter()
 se_score_total = 0
 for i in tqdm(range(0, len(eval_dataset), batch_size)):
-    eval_batch = [eval_dataset[j]['input'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
-    if None in eval_batch:
+    eval_reference = [eval_dataset[j]['reference'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
+    eval_prediction = [eval_dataset[j]['prediction'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
+    if None in eval_reference:
         print(f"None in eval_batch")
-        print(type(eval_batch))
         print(i)
-    eval_batch = tokenizer(eval_batch, return_tensors="pt", padding=True, truncation=True, max_length=1024)
-    eval_batch = eval_batch.to('cuda')
-    with torch.no_grad():
-        outputs = model.generate(**eval_batch, max_new_tokens=512, num_return_sequences=1, do_sample=True, pad_token_id=tokenizer.eos_token_id)
-        
-        for j in range(len(outputs)):
-            text = tokenizer.decode(outputs[j], skip_special_tokens=True)
-            prediction = eval_dataset[i+j]['prediction']
-            pred_render_dict, num_errors, error_type_counter, se_score = process_text(text, prediction, error_type_counter)
-            total_errors += num_errors
-            se_score_total += se_score
-            reference = eval_dataset[i+j]['reference']
-            output_json.append({
-                'prediction': pred_render_dict,
-                'reference': reference,
-            })
+    if i == 0:
+        print(eval_reference)
+        print(eval_prediction)
+    batch_outputs, scores_ls = scorer.score(ref_ls=eval_reference, out_ls=eval_prediction)
+    for j in range(len(batch_outputs)):
+        if j < 3: 
+            print(batch_outputs[j])
+        prediction = eval_dataset[i+j]['prediction']
+        pred_render_dict, num_errors, error_type_counter, se_score = process_text(batch_outputs[j], prediction, error_type_counter)
+        total_errors += num_errors
+        se_score_total += se_score
+        reference = eval_dataset[i+j]['reference']
+        output_json.append({
+            'prediction': pred_render_dict,
+            'reference': reference,
+        })
     if i < 100:
         output_json.append({
             'stats': {
@@ -212,6 +217,7 @@ output_json.append({
                 'se_score': se_score_total/((i+1)*batch_size)
             }
         })
+
 json.dump(output_json, open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json", "w"), indent=2)
      
 
