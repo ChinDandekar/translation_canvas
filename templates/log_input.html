@@ -27,18 +27,57 @@ InstructScore Visualizer
 {% endblock %}
 
 {% block content %}
+    <script>
+        function updateTargetLanguages() {
+            const sourceLang = document.getElementById('source_lang').value;
+            const targetLang = document.getElementById('target_lang');
+            targetLang.innerHTML = '';
 
-<div class="container">
-    <form method="POST" action="{{ url_for('process_log_input') }}" class="input-form">
-        <div class = "description">
-            Please input the path to the .log file (e.g. /path/to/instances.log), the source language and the target language, a unique memorable name, and your email. Make sure to include /mnt/taurus, /mnt/aries or /mnt/gemini in the path.
-        </div>
-        <input type="text" name="user_input" class="input-field" placeholder="/mnt/aries/...">
-        <input type="text" name="source_lang" class="input-field" placeholder="Source Lang">
-        <input type="text" name="target_lang" class="input-field" placeholder="Target Lang">
-        <input type="text" name="memorable_name" class="input-field" placeholder="Memorable name here">
-        <input type="text" name="email" class="input-field" placeholder="joeschmoe@gmail.com">
-        <button type="submit" class="submit-button">Submit</button>
-    </form>
-</div>
+            const targetLanguages = {{ target_languages|tojson }};
+            const languageNames = {{ language_names|tojson }};
+
+            const option = document.createElement('option');
+            option.value = '';
+            option.text = 'Select Target Language';
+            option.disabled = true;
+            targetLang.appendChild(option);
+
+            if (targetLanguages[sourceLang]) {
+                targetLanguages[sourceLang].forEach(lang => {
+                    const option = document.createElement('option');
+                    option.value = lang;
+                    option.text = languageNames[lang];
+                    targetLang.appendChild(option);
+                });
+            }
+        }
+
+        // Initial call to populate target languages on page load
+        window.onload = function() {
+            updateTargetLanguages();
+        }
+    </script>
+    <div class="container">
+        <form method="POST" action="{{ url_for('process_log_input') }}" class="input-form">
+            <div class = "description">
+                Please input the path to the .log file (e.g. /path/to/instances.log), the source language and the target language, a unique memorable name, and your email. Make sure to include /mnt/taurus, /mnt/aries or /mnt/gemini in the path.
+            </div>
+            <input type="text" name="email" class="input-field" placeholder="joeschmoe@gmail.com">
+            <input type="text" id="file" name="file" class="input-field">
+            <select id="source_lang" name="source_lang" class="input-field" onchange="updateTargetLanguages()">
+                <option value="" disabled selected>Select Source Language</option>
+                {% for lang in source_languages %}
+                    <option value="{{ lang }}">{{ language_names[lang] }}</option>
+                {% endfor %}
+            </select>
+
+            <select id="target_lang" name="target_lang" class="input-field">
+                <option value="" disabled selected>Select Target Language</option>
+                <!-- Options will be dynamically populated by JavaScript -->
+            </select>
+
+            <input type="text" name="memorable_name" class="input-field" placeholder="Memorable name here">
+            <button type="submit" class="submit-button">Submit</button>
+        </form>
+    </div>
 {% endblock %}

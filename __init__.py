@@ -45,7 +45,7 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
-        file = request.form['user_input']
+        file = request.form['file']
         tgt = request.form['target_lang']
         src = request.form['source_lang']
         name = request.form['memorable_name']
@@ -64,7 +64,21 @@ def create_app(test_config=None):
             str: The rendered HTML template.
         """
         help_text = help_text_json["log_input"]
-        return render_template('log_input.html', help_text=help_text)
+        source_languages = ['zh', 'en']
+        target_languages = {
+            'zh': ['en'],
+            'en': ['es', 'ru', 'de']
+        }
+        language_names = {
+        'zh': 'Chinese',
+        'en': 'English',
+        'es': 'Spanish',
+        'ru': 'Russian',
+        'de': 'German'
+    }
+        return render_template('log_input.html', help_text=help_text, source_languages=source_languages, 
+                               target_languages=target_languages, 
+                               language_names=language_names)
     
     @app.route('/instruct_in', methods=['GET'])
     def instruct_in():
@@ -88,7 +102,7 @@ def create_app(test_config=None):
         # Get page number from the request, default to 1 if not provided
         file = request.form['file']
         file_path = f"{path_to_file}/jobs/{file}/{file}_instructscore.json"
-        # print(file)
+        print(file_path)
         if os.path.exists(file_path):
 
             page_number = int(request.form.get('current_page', 1))

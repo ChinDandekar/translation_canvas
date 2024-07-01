@@ -71,7 +71,7 @@ def process_text(text, prediction, error_type_counter):
             - error_type_counter (dict): The updated error type counter.
 
     """
-    print(text)
+    # print(text)
     se_score = 0
     text = text + '\n'
     num_pattern = r'Your Translation contains (\d+) errors:'
@@ -90,8 +90,8 @@ def process_text(text, prediction, error_type_counter):
 
     # Use re.findall() to find all matches of the patterns in the text
     matches = re.findall(error_pattern, text)
-    print(f"Matches found: {matches}")
-    print(f"text: {text}")
+    # print(f"Matches found: {matches}")
+    # print(f"text: {text}")
     
     queries = []
     query_dict = []
@@ -153,7 +153,7 @@ data = load_dataset(
     use_auth_token=None,
     cache_dir=os.environ["HF_ASSETS_CACHE"]
 )
-print(f"This is data: {data}")
+# print(f"This is data: {data}")
 
 # naive partition on training and validation set, 10,000 vs 500
 eval_dataset=data
@@ -180,9 +180,9 @@ for i in tqdm(range(0, len(eval_dataset), batch_size)):
     if None in eval_reference:
         print(f"None in eval_batch")
         print(i)
-    if i == 0:
-        print(eval_reference)
-        print(eval_prediction)
+    # if i == 0:
+    #     print(eval_reference)
+    #     print(eval_prediction)
     batch_outputs, scores_ls = scorer.score(ref_ls=eval_reference, out_ls=eval_prediction)
     for j in range(len(batch_outputs)):
         if j < 3: 
@@ -205,7 +205,7 @@ for i in tqdm(range(0, len(eval_dataset), batch_size)):
                 'se_score': se_score_total/len(output_json)
             }
         })
-        print("overwriting last dump")
+        # print("overwriting last dump")
         json.dump(output_json, open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json", "w"), indent=2)
         output_json.pop(-1)
 
