@@ -28,7 +28,7 @@ InstructScore Visualizer
 
 {% block content %}
     <div class="container">
-        <form method="POST" action="{{ url_for('process_log_input') }}" class="input-form" id = "logForm">
+        <form method="POST" action="{{ url_for('process_log_input') }}" class="input-form" id = "logForm" enctype="multipart/form-data">
             <div class = "description">
                 Please input the path to the .log file (e.g. /path/to/instances.log), the source language and the target language, a unique memorable name, and your email. Make sure to include /mnt/taurus, /mnt/aries or /mnt/gemini in the path.
             </div>
@@ -41,7 +41,8 @@ InstructScore Visualizer
 
             <div class="description">  --- OR (but not both) --- </div>
             <label for = "file" class = "field-description-text">Upload your file:</label>
-            <input type="file" id="file_upload" name="file_upload" class="input-field">
+            <input type="file" id="file_upload" name="file_upload" class="input-field" onchange="updateFileName()">
+            <span id="file-name-display">Choose File</span>
 
             <label for = "source_lang" class = "field-description-text">Source language:</label>
             <select id="source_lang" name="source_lang" class="input-field" onchange="updateTargetLanguages()">
@@ -64,6 +65,14 @@ InstructScore Visualizer
     </div>
 
     <script>
+        function updateFileName() {
+            const fileInput = document.getElementById('file_upload');
+            const fileNameDisplay = document.getElementById('file-name-display');
+
+            const fileName = fileInput.files.length > 0 ? fileInput.files[0].name : "Choose File";
+            fileNameDisplay.textContent = fileName;
+        }
+
         function updateTargetLanguages() {
             const sourceLang = document.getElementById('source_lang').value;
             const targetLang = document.getElementById('target_lang');

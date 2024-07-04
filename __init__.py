@@ -7,12 +7,14 @@ import json
 from instructscore_visualizer.utils import convert_log_to_json, create_and_exec_slurm, instructscore_to_dict
 
 from flask import Flask, render_template, request
+from werkzeug.utils import secure_filename
 
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(path_to_file)
 # Define the number of items per page
 ITEMS_PER_PAGE = 5
 help_text_json = json.load(open(os.path.join(path_to_file, 'help_text.json')))
+UPLOAD_FOLDER = os.path.join(path_to_file, "uploaded_files")  # Specify your upload folder path
 
 
 def create_app(test_config=None):
@@ -26,6 +28,7 @@ def create_app(test_config=None):
         Flask: The configured Flask app.
     """
     app = Flask(__name__)
+    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
     @app.route('/')
     def index():
@@ -46,12 +49,16 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
-        file = request.form['file']
+        filename = request.form['file']
+        if 'file_upload' in request.files:
+            file = request.files['file_upload']
+            filename = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
+            file.save(filename)
         tgt = request.form['target_lang']
         src = request.form['source_lang']
         name = request.form['memorable_name']
         email = request.form['email']
-        new_file=convert_log_to_json(file, src, tgt, name)
+        new_file=convert_log_to_json(filename, src, tgt, name)
         create_and_exec_slurm(name, new_file, email)
         help_text = help_text_json["process_log_input"]
         return render_template('log_output.html', memorable_name=name, file_name=new_file, help_text=help_text)
