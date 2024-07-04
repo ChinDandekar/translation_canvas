@@ -27,6 +27,42 @@ InstructScore Visualizer
 {% endblock %}
 
 {% block content %}
+    <div class="container">
+        <form method="POST" action="{{ url_for('process_log_input') }}" class="input-form" id = "logForm">
+            <div class = "description">
+                Please input the path to the .log file (e.g. /path/to/instances.log), the source language and the target language, a unique memorable name, and your email. Make sure to include /mnt/taurus, /mnt/aries or /mnt/gemini in the path.
+            </div>
+
+            <label for = "file" class = "field-description-text">Your email:</label>
+            <input type="text" id="email" name="email" class="input-field" placeholder="joeschmoe@gmail.com">
+
+            <label for = "file" class = "field-description-text">The path to your file (if it is on the same machine running this webapp):</label>
+            <input type="text" id="file" name="file" class="input-field">
+
+            <div class="description">  --- OR (but not both) --- </div>
+            <label for = "file" class = "field-description-text">Upload your file:</label>
+            <input type="file" id="file_upload" name="file_upload" class="input-field">
+
+            <label for = "source_lang" class = "field-description-text">Source language:</label>
+            <select id="source_lang" name="source_lang" class="input-field" onchange="updateTargetLanguages()">
+                <option value="" disabled selected>Select Source Language</option>
+                {% for lang in source_languages %}
+                    <option value="{{ lang }}">{{ language_names[lang] }}</option>
+                {% endfor %}
+            </select>
+
+            <label for = "target_lang" class = "field-description-text">Target language:</label>
+            <select id="target_lang" name="target_lang" class="input-field">
+                <option value="" disabled selected>Select Target Language</option>
+                <!-- Options will be dynamically populated by JavaScript -->
+            </select>
+            
+            <div class = "field-description-text">Memorable name:</div>
+            <input type="text" id="memorable_name" name="memorable_name" class="input-field" placeholder="Memorable name here">
+            <button type="submit" class="submit-button">Submit</button>
+        </form>
+    </div>
+
     <script>
         function updateTargetLanguages() {
             const sourceLang = document.getElementById('source_lang').value;
@@ -56,28 +92,54 @@ InstructScore Visualizer
         window.onload = function() {
             updateTargetLanguages();
         }
+
+
+        document.getElementById('logForm').addEventListener('submit', function(event) {
+            // Get form elements
+            var email = document.getElementById('email').value;
+            var file = document.getElementById('file').value;
+            var fileUpload = document.getElementById('file_upload').value;
+            var sourceLang = document.getElementById('source_lang').value;
+            var targetLang = document.getElementById('target_lang').value;
+            var memorableName = document.getElementById('memorable_name').value;
+    
+            // Email validation
+            if (email === "") {
+                window.alert("Email is required.");
+                event.preventDefault();
+                return false;
+            }
+    
+            // File path or upload validation
+            if (file === "" && fileUpload === "") {
+                window.alert("Either the path to the file or uploading the file is required.");
+                event.preventDefault();
+                return false;
+            }
+            if (file !== "" && fileUpload !== "") {
+                window.alert("Please provide either the path to the file or upload the file, but not both.");
+                event.preventDefault();
+                return false;
+            }
+    
+            // Source and target languages validation
+            if (sourceLang === "") {
+                window.alert("Source language is required.");
+                event.preventDefault();
+                return false;
+            }
+            if (targetLang === "") {
+                window.alert("Target language is required.");
+                event.preventDefault();
+                return false;
+            }
+    
+            // Memorable name validation
+            if (memorableName === "") {
+                window.alert("Memorable name is required.");
+                event.preventDefault();
+                return false;
+            }
+        });
     </script>
-    <div class="container">
-        <form method="POST" action="{{ url_for('process_log_input') }}" class="input-form">
-            <div class = "description">
-                Please input the path to the .log file (e.g. /path/to/instances.log), the source language and the target language, a unique memorable name, and your email. Make sure to include /mnt/taurus, /mnt/aries or /mnt/gemini in the path.
-            </div>
-            <input type="text" name="email" class="input-field" placeholder="joeschmoe@gmail.com">
-            <input type="text" id="file" name="file" class="input-field">
-            <select id="source_lang" name="source_lang" class="input-field" onchange="updateTargetLanguages()">
-                <option value="" disabled selected>Select Source Language</option>
-                {% for lang in source_languages %}
-                    <option value="{{ lang }}">{{ language_names[lang] }}</option>
-                {% endfor %}
-            </select>
-
-            <select id="target_lang" name="target_lang" class="input-field">
-                <option value="" disabled selected>Select Target Language</option>
-                <!-- Options will be dynamically populated by JavaScript -->
-            </select>
-
-            <input type="text" name="memorable_name" class="input-field" placeholder="Memorable name here">
-            <button type="submit" class="submit-button">Submit</button>
-        </form>
-    </div>
 {% endblock %}

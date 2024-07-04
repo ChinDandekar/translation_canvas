@@ -14,6 +14,7 @@ sys.path.append(path_to_file)
 ITEMS_PER_PAGE = 5
 help_text_json = json.load(open(os.path.join(path_to_file, 'help_text.json')))
 
+
 def create_app(test_config=None):
     """
     Create and configure the Flask app.
