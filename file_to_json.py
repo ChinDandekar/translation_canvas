@@ -9,6 +9,8 @@ import os
 import json
 
 JOBS = os.path.join(os.path.dirname(__file__), 'jobs')
+if not os.path.exists(JOBS):
+    os.mkdir(JOBS)
 
 parser = ArgumentParser()
 parser.add_argument('--file_name', type=str, default="")

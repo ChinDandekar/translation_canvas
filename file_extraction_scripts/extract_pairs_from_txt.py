@@ -27,8 +27,3 @@ def extract_pairs_from_txt(file):
             # Add only prediction and reference data to the pairs list
     
     return pairs
-
-    if not os.path.exists(f"{path_to_file}/jobs/{memorable_name}"):
-        os.mkdir(f"{path_to_file}/jobs/{memorable_name}")
-    json.dump(ansJson, open(f"{path_to_file}/jobs/{memorable_name}/{new_file}.json", "w"), indent=2)
-    return new_file

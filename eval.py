@@ -49,10 +49,6 @@ def get_score(text):
     keyword = re.escape('Major/minor: Minor')
     num_minor = re.findall(keyword, text, re.IGNORECASE)
     num_minor = len(num_minor)
-    # print(text)
-    # print('-' * 50)
-    # print(num_major, num_minor)
-    # print('=' * 50)
     return max(-5 * num_major - num_minor, -25)
 
 def process_text(text, prediction, error_type_counter):
@@ -143,20 +139,12 @@ if file_name == 0:
 else:
     print(file_name)
 
-batch_size = 3
+batch_size = 20
 extensions = "json"
-data = load_dataset(
-    extensions,
-    data_files=[file_name],
-    field=KEY_INSTANCES,
-    split="train",
-    use_auth_token=None,
-    cache_dir=os.environ["HF_ASSETS_CACHE"]
-)
 # print(f"This is data: {data}")
 
 # naive partition on training and validation set, 10,000 vs 500
-eval_dataset=data
+eval_dataset=json.load(open(file_name, "r"))
 
 # model_path = 'xu1998hz/InstructScore'
 # model = LlamaForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16, cache_dir=os.environ["HF_HOME"]).to('cuda')

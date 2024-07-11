@@ -5,7 +5,7 @@ path_to_file = os.path.dirname(os.path.abspath(__file__))
 
 def extract_pairs_from_json(file):
     """
-    Converts a SimulEval log file to a JSON file with specific formatting.
+    Extracts prediction-reference pairs from a json file and creates a dictionairy containing those pairs
 
     Args:
         file (str): The path to the log file.
@@ -27,8 +27,3 @@ def extract_pairs_from_json(file):
             # Add only prediction and reference data to the pairs list
     
     return pairs
-
-    if not os.path.exists(f"{path_to_file}/jobs/{memorable_name}"):
-        os.mkdir(f"{path_to_file}/jobs/{memorable_name}")
-    json.dump(ansJson, open(f"{path_to_file}/jobs/{memorable_name}/{new_file}.json", "w"), indent=2)
-    return new_file

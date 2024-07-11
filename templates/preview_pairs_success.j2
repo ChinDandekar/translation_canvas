@@ -9,33 +9,48 @@ InstructScore Visualizer
      <div class = "flex-container">
         <div class="editor-text-container">
             <div class = "description">
-                Here are some of the prediction-reference pairs extracted from your file. You can now execute InstructScore on these pairs, or return to the previous page to modify your script. Happy coding!
+                Here is what your script produced. Does this look like the expected output? If not, you can edit your script and 
+                press the rerun button to rerun it. If it looks correct, you can move on to the next step. If you want to change your 
+                file, press previous to go back to the file selection page.
             </div>
         </div> 
         <div class="editor-container">
             <div id="editor-container3" class="editor"></div>
             {{ rocher_editor(
                 "editor-container3",
-                "json",
-                pairs,
-                readOnly=True,
+                "python",
+                source_code,
+                readOnly=False,
                 theme="vs-dark",
                 lineHeight=20,
                 wordWrap='on',
                 minimap={"enabled": False}) 
             }}
-            <div id="editor-container4" class="editor"></div>
-            {{ rocher_editor(
-                "editor-container4",
-                file_type,
-                file_content,
-                readOnly=True,
-                theme="vs-dark",
-                lineHeight=20,
-                wordWrap='on',
-                minimap={"enabled": False}) 
-            }}
-        </div>
+            <div class = "editor-right">
+                <div id="editor-container4" class="editor-half" style="margin-bottom: 0.5%"></div>
+                {{ rocher_editor(
+                    "editor-container4",
+                    "json",
+                    pairs,
+                    readOnly=True,
+                    theme="vs-dark",
+                    lineHeight=20,
+                    wordWrap='on',
+                    minimap={"enabled": False}) 
+                }}
+                <div id="editor-container5" class="editor-half" style="margin-top: 0.5%"></div>
+                {{ rocher_editor(
+                    "editor-container5",
+                    file_type,
+                    file_content,
+                    readOnly=True,
+                    theme="vs-dark",
+                    lineHeight=20,
+                    wordWrap='on',
+                    minimap={"enabled": False}) 
+                }}
+                </div>
+            </div>
         <div class="terminal-container">
             <div class="terminal-window">
                 <span class="green-text">stderr $</span> 
@@ -48,11 +63,18 @@ InstructScore Visualizer
         </div>
 
         <div class="editor-buttons">
-            <form method="POST" action="{{ url_for('file_input') }}" class="input-form" id = "editorPreviousForm">
+            <form method="GET" action="{{ url_for('file_input') }}" class="input-form" id = "editorPreviousForm">
                 <input type="hidden" id="file_options" name="file_options" value="{{ file_type }}">
                 <input type="hidden" id="file" name="file" value="{{ filename }}">
                 <input type="hidden" id="memorable_name" name="memorable_name" value="{{ memorable_name }}">
                 <button type="submit" class="submit-button">Previous</button>
+            </form>
+            <form method="POST" action="{{ url_for('preview_pairs') }}" class="input-form" id = "editorNextForm" on>
+                <input type="hidden" id="file_options" name="file_options" value="{{ file_type }}">
+                <input type="hidden" id="file" name="file" value="{{ filename }}">
+                <input type="hidden" id="memorable_name" name="memorable_name" value="{{ memorable_name }}">
+                <input type="hidden" id="source_code" name="source_code" value="{{ source_code }}">
+                <button type="submit" class="submit-button" onclick="save()">Rerun</button>
             </form>
             <form method="POST" action="{{ url_for('input_form') }}" class="input-form" id = "editorNextForm" on>
                 <input type="hidden" id="file_options" name="file_options" value="{{ file_type }}">
@@ -62,6 +84,14 @@ InstructScore Visualizer
             </form>
         </div>
     </div>
-
+    
+    <script>
+        function save() {
+            require(['rocher_editor_editor-container3'], function (editor) {
+                var source_code = editor.getValue();
+                document.getElementById('source_code').value = source_code;
+            });
+        }
+    </script>
 
 {% endblock %}

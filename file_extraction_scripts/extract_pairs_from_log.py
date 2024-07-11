@@ -5,7 +5,7 @@ path_to_file = os.path.dirname(os.path.abspath(__file__))
 # Please don't change the function signature
 def extract_pairs_from_log(file: str) -> list:
     """
-    Converts a SimulEval log file to a JSON file with specific formatting.
+    Extracts prediction-reference pairs from a SimulEval log file and creates a dictionairy containing those pairs
 
     Args:
         file (str): The path to the log file.
@@ -24,9 +24,7 @@ def extract_pairs_from_log(file: str) -> list:
         for line in lines:
             data = json.loads(line)     # Load the data from the line
             pairs.append({"prediction": data["prediction"], "reference": data["reference"]})
-            # if 'Cuando' in data['prediction']:
-            #     print("whoaaaaa")
             # Add only prediction and reference data to the pairs list
-    print("oopsies")
-    # raise TypeError("whoopsie daisy")
+    # Please don't change return value
+    raise TypeError("whoops here's an error")
     return pairs

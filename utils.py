@@ -7,41 +7,14 @@ import subprocess
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 
 
-def convert_log_to_json(file, src_lang, tgt_lang, memorable_name):
+def get_completed_jobs():
     """
-    Converts a log file to a JSON file with specific formatting.
-
-    Args:
-        file (str): The path to the log file.
-        src_lang (str): The source language for the translation task.
-        tgt_lang (str): The target language for the translation task.
-        memorable_name (str): A memorable name for the job.
+    Get the list of completed jobs.
 
     Returns:
-        str: The name of the newly created JSON file.
-
-    Raises:
-        FileNotFoundError: If the specified log file does not exist.
-
+        list: A list of completed jobs.
     """
-    new_file = file.split("/")[-2]
-    outputs = []
-
-    with open(file) as f:
-        lines = f.readlines()
-        for i,line in enumerate(lines):
-            data = json.loads(line)
-            outputs.append([data["prediction"], data["reference"]])
-    
-    all_outputs = []
-    for output in outputs:
-        all_outputs.append({"reference": output[1], "prediction": output[0]})
-
-    ansJson = all_outputs
-    if not os.path.exists(f"{path_to_file}/jobs/{memorable_name}"):
-        os.mkdir(f"{path_to_file}/jobs/{memorable_name}")
-    json.dump(ansJson, open(f"{path_to_file}/jobs/{memorable_name}/{new_file}.json", "w"), indent=2)
-    return new_file
+    jobs = os.listdir(os.path.join(path_to_file, "jobs"))
     
 def get_free_gpus():
     command = ['gpustat', '--json']

@@ -5,7 +5,7 @@ path_to_file = os.path.dirname(os.path.abspath(__file__))
 
 def extract_pairs_from_xml(file):
     """
-    Converts a SimulEval log file to a JSON file with specific formatting.
+    Extracts prediction-reference pairs from a xml file and creates a dictionairy containing those pairs
 
     Args:
         file (str): The path to the log file.

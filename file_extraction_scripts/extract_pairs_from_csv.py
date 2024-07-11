@@ -5,7 +5,7 @@ path_to_file = os.path.dirname(os.path.abspath(__file__))
 
 def extract_pairs_from_csv(file):
     """
-    Converts a SimulEval log file to a JSON file with specific formatting.
+    Extracts prediction-reference pairs from a csv file and creates a dictionairy containing those pairs
 
     Args:
         file (str): The path to the log file.
@@ -25,10 +25,24 @@ def extract_pairs_from_csv(file):
             data = json.loads(line)     # Load the data from the line
             pairs.append({"prediction": data["prediction"], "reference": data["reference"]})
             # Add only prediction and reference data to the pairs list
-    
     return pairs
 
-    if not os.path.exists(f"{path_to_file}/jobs/{memorable_name}"):
-        os.mkdir(f"{path_to_file}/jobs/{memorable_name}")
-    json.dump(ansJson, open(f"{path_to_file}/jobs/{memorable_name}/{new_file}.json", "w"), indent=2)
-    return new_file
+
+"""
+After running this script, if it ran correctly, the output should look like:
+[
+    {
+        "prediction": prediction1,
+        "reference": reference1
+    },
+    {
+        "prediction": prediction2,
+        "reference": reference2
+    }.
+    {
+        "prediction": prediction3,
+        "reference": reference3
+    }.
+    ...
+]
+"""

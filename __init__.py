@@ -133,7 +133,7 @@ def create_app(test_config=None):
             file_content = read_file_content(filename)
             help_text = help_text_json["preview_pairs_success"]
             
-            return render_template('preview_pairs_success.j2', pairs=pairs, file_type=file_type, filename=filename, memorable_name=memorable_name, file_content=file_content, help_text=help_text, err=results.stderr, out = results.stdout)
+            return render_template('preview_pairs_success.j2', pairs=pairs, source_code = source_code, file_type=file_type, filename=filename, memorable_name=memorable_name, file_content=file_content, help_text=help_text, err=results.stderr, out = results.stdout)
         else:
             file_content = read_file_content(filename)
             help_text = help_text_json["preview_pairs_failure"]
@@ -180,6 +180,7 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
+        
         help_text = help_text_json["instruct_in"]
         return render_template('instruct_in.j2', help_text=help_text)
     
