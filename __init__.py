@@ -3,7 +3,7 @@ import os
 import subprocess
 import sys
 import json
-from instructscore_visualizer.utils import convert_log_to_json, create_and_exec_slurm, instructscore_to_dict, read_file_content, write_file_content
+from instructscore_visualizer.utils import create_and_exec_slurm, instructscore_to_dict, read_file_content, write_file_content, get_completed_jobs
 
 from flask import Flask, render_template, request, session
 import secrets
@@ -180,9 +180,9 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
-        
+        options = get_completed_jobs()
         help_text = help_text_json["instruct_in"]
-        return render_template('instruct_in.j2', help_text=help_text)
+        return render_template('instruct_in.j2', help_text=help_text, options=options)
     
     @app.route('/visualize_instruct', methods=['POST','GET'])
     def visualize_instruct():
@@ -193,23 +193,38 @@ def create_app(test_config=None):
             str: The rendered HTML template.
         """
         # Get page number from the request, default to 1 if not provided
-        file = request.form['file']
-        file_path = f"{path_to_file}/jobs/{file}/{file}_instructscore.json"
-        if os.path.exists(file_path):
-
-            page_number = int(request.form.get('current_page', 1))
-            
-            # Calculate the starting index based on the page number
-            start_index = (page_number - 1) * ITEMS_PER_PAGE
-            file = request.form['file']
-            input_data, total_items, num_errors, most_common_errors, avg_errors, se_score = instructscore_to_dict(file, start_index, ITEMS_PER_PAGE)
-        
-            # Calculate total number of pages
-            total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
-            help_text = help_text_json["visualize_instruct"]
-            return render_template('visualize_instruct.j2', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, file=file, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score)
-        
+        if 'files' in request.form:
+            files = request.form.getlist('files')
+            print(f"files fom next page: {files}")
         else:
-            return render_template('error.j2', error_message="File not found")
+            files = request.form.getlist('selected_options')
+        
+        input_data = []
+        
+                    
+        page_number = int(request.form.get('current_page', 1))
+        
+        # Calculate the starting index based on the page number
+        start_index = (page_number - 1) * ITEMS_PER_PAGE
+        
+        print(f"{files} are the files")
+        for file in files:
+            data, total_items, num_errors, most_common_errors, avg_errors, se_score = instructscore_to_dict(file, start_index, ITEMS_PER_PAGE)
+            for i,item in enumerate(data):
+                if len(input_data) <= i:
+                    input_data.append({'prediction': {}})
+                input_data[i]['prediction'][file] = item['prediction']
+                input_data[i]['reference'] = item['reference']
+            
+        
+
+        print(input_data)            
+        
+        
+        # Calculate total number of pages
+        total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
+        help_text = help_text_json["visualize_instruct"]
+            
+        return render_template('visualize_instruct.j2', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, files=files, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score)
     
     return app

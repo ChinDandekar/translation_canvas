@@ -14,7 +14,19 @@ def get_completed_jobs():
     Returns:
         list: A list of completed jobs.
     """
+    JOBS = os.path.join(path_to_file, 'jobs')
+    if not os.path.exists(JOBS):
+        os.mkdir(JOBS)
+        
     jobs = os.listdir(os.path.join(path_to_file, "jobs"))
+    
+    completed_jobs = []
+    for job in jobs:
+        if os.path.exists(f"{path_to_file}/jobs/{job}/{job}_instructscore.json"):
+            completed_jobs.append(job)
+    
+    return completed_jobs
+    
     
 def get_free_gpus():
     command = ['gpustat', '--json']
