@@ -33,13 +33,11 @@ def convert_log_to_json(file, src_lang, tgt_lang, memorable_name):
             data = json.loads(line)
             outputs.append([data["prediction"], data["reference"]])
     
-    ansJson = {"type": "text2text"}
     all_outputs = []
     for output in outputs:
-        inputString = f"You are evaluating {src_lang}-to-{tgt_lang} Machine translation task. The correct translation is \"{output[1]}\". The model generated translation is \"{output[0]}\". Please identify all errors within each model output, up to a maximum of five. For each error, please give me the corresponding error type, major/minor label, error location of the model generated translation and explanation for the error. Major errors can confuse or mislead the reader due to significant change in meaning, while minor errors don't lead to loss of meaning but will be noticed."
-        all_outputs.append({"input": inputString, "reference": output[1], "prediction": output[0]})
+        all_outputs.append({"reference": output[1], "prediction": output[0]})
 
-    ansJson["instances"] = all_outputs
+    ansJson = all_outputs
     if not os.path.exists(f"{path_to_file}/jobs/{memorable_name}"):
         os.mkdir(f"{path_to_file}/jobs/{memorable_name}")
     json.dump(ansJson, open(f"{path_to_file}/jobs/{memorable_name}/{new_file}.json", "w"), indent=2)
@@ -59,7 +57,7 @@ def get_free_gpus():
             free_indices.append(gpu['index'])
     return free_indices
 
-def create_and_exec_slurm(memorable_name, file_name, email):
+def create_and_exec_slurm(memorable_name, file_name):
     """
     Creates and executes a SLURM job script for running a Python script with specified parameters.
 
@@ -72,7 +70,7 @@ def create_and_exec_slurm(memorable_name, file_name, email):
         int: The exit status of the job execution.
     """
     free_gpus = get_free_gpus()
-    with open(f"{path_to_file}/jobs/{memorable_name}/{memorable_name}_{file_name}.sh", "w") as f:
+    with open(f"{file_name}.sh", "w") as f:
         f.write("#!/usr/bin/env bash\n\n\n" + 
                 "#SBATCH --nodes=1\n" +
                 "#SBATCH --ntasks=1\n" + 
@@ -83,19 +81,19 @@ def create_and_exec_slurm(memorable_name, file_name, email):
                 "#SBATCH --time=5-2:34:56\n" +
                 "#SBATCH --account=chinmay\n" +
                 "#SBATCH --mail-type=ALL\n" +
-                f"#SBATCH --mail-user={email}\n" +
-                f"#SBATCH --output={path_to_file}/jobs/{memorable_name}/{memorable_name}_{file_name}_slurm_out.txt\n" + 
-                f"#SBATCH --error={path_to_file}/jobs/{memorable_name}/{memorable_name}_{file_name}_slurm_err.txt")
+                f"#SBATCH --mail-user=cdandekar@ucsb.edu\n" +
+                f"#SBATCH --output={file_name}_slurm_out.txt\n" + 
+                f"#SBATCH --error={file_name}_slurm_err.txt")
         
         f.write("\n\n")
-        visible_devices = ",".join([str(i) for i in free_gpus])
+        visible_devices = ",".join([str(i) for i in free_gpus[:2]])
         f.write(f"export CUDA_VISIBLE_DEVICES={visible_devices}\n")
         f.write(f"cd {path_to_file}/..\n")
-        f.write(f'python {path_to_file}/eval.py --file_name "{path_to_file}/jobs/{memorable_name}/{file_name}.json" --memorable_name {memorable_name}')
+        f.write(f'python {path_to_file}/eval.py --file_name "{file_name}" --memorable_name {memorable_name}')
     pid = os.fork()
     if pid==0:
         os.chdir(f"{path_to_file}/jobs/{memorable_name}")
-        os.system(f"sbatch {path_to_file}/jobs/{memorable_name}/{memorable_name}_{file_name}.sh")
+        os.system(f"sbatch {file_name}.sh")
         os._exit(0)
     else:
         os.waitpid(pid, 0)
@@ -162,3 +160,11 @@ def instructscore_to_dict(memorable_name, start_index, items_per_page):
         avg_errors = num_errors/total_length       
         
     return render_data, total_length, num_errors, most_common_errors, avg_errors, se_score
+
+def read_file_content(file_path):
+    with open(file_path, 'r') as file:
+        return file.read()
+    
+def write_file_content(file_path, content):
+    with open(file_path, 'w') as file:
+        return file.write(content)

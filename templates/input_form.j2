@@ -28,22 +28,12 @@ InstructScore Visualizer
 
 {% block content %}
     <div class="container">
-        <form method="POST" action="{{ url_for('process_log_input') }}" class="input-form" id = "logForm" enctype="multipart/form-data">
+        <form method="POST" action="{{ url_for('process_input_form') }}" class="input-form" id = "logForm" enctype="multipart/form-data">
+            <h3 class="description">Final Step!</h3>
             <div class = "description">
-                Please input the path to the .log file (e.g. /path/to/instances.log), the source language and the target language, a unique memorable name, and your email. Make sure to include /mnt/taurus, /mnt/aries or /mnt/gemini in the path.
+                Please provide the source and target languages
             </div>
-
-            <label for = "file" class = "field-description-text">Your email:</label>
-            <input type="text" id="email" name="email" class="input-field" placeholder="joeschmoe@gmail.com">
-
-            <label for = "file" class = "field-description-text">The path to your file (if it is on the same machine running this webapp):</label>
-            <input type="text" id="file" name="file" class="input-field">
-
-            <div class="description">  --- OR (but not both) --- </div>
-            <label for = "file" class = "field-description-text">Upload your file:</label>
-            <input type="file" id="file_upload" name="file_upload" class="input-field" onchange="updateFileName()">
-            <span id="file-name-display">Choose File</span>
-
+=
             <label for = "source_lang" class = "field-description-text">Source language:</label>
             <select id="source_lang" name="source_lang" class="input-field" onchange="updateTargetLanguages()">
                 <option value="" disabled selected>Select Source Language</option>
@@ -58,20 +48,11 @@ InstructScore Visualizer
                 <!-- Options will be dynamically populated by JavaScript -->
             </select>
             
-            <div class = "field-description-text">Memorable name:</div>
-            <input type="text" id="memorable_name" name="memorable_name" class="input-field" placeholder="Memorable name here">
             <button type="submit" class="submit-button">Submit</button>
         </form>
     </div>
 
     <script>
-        function updateFileName() {
-            const fileInput = document.getElementById('file_upload');
-            const fileNameDisplay = document.getElementById('file-name-display');
-
-            const fileName = fileInput.files.length > 0 ? fileInput.files[0].name : "Choose File";
-            fileNameDisplay.textContent = fileName;
-        }
 
         function updateTargetLanguages() {
             const sourceLang = document.getElementById('source_lang').value;
@@ -105,31 +86,9 @@ InstructScore Visualizer
 
         document.getElementById('logForm').addEventListener('submit', function(event) {
             // Get form elements
-            var email = document.getElementById('email').value;
-            var file = document.getElementById('file').value;
-            var fileUpload = document.getElementById('file_upload').value;
             var sourceLang = document.getElementById('source_lang').value;
             var targetLang = document.getElementById('target_lang').value;
-            var memorableName = document.getElementById('memorable_name').value;
-    
-            // Email validation
-            if (email === "") {
-                window.alert("Email is required.");
-                event.preventDefault();
-                return false;
-            }
-    
-            // File path or upload validation
-            if (file === "" && fileUpload === "") {
-                window.alert("Either the path to the file or uploading the file is required.");
-                event.preventDefault();
-                return false;
-            }
-            if (file !== "" && fileUpload !== "") {
-                window.alert("Please provide either the path to the file or upload the file, but not both.");
-                event.preventDefault();
-                return false;
-            }
+
     
             // Source and target languages validation
             if (sourceLang === "") {
@@ -142,13 +101,7 @@ InstructScore Visualizer
                 event.preventDefault();
                 return false;
             }
-    
-            // Memorable name validation
-            if (memorableName === "") {
-                window.alert("Memorable name is required.");
-                event.preventDefault();
-                return false;
-            }
+
         });
     </script>
 {% endblock %}

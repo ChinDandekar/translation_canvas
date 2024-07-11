@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}
+InstructScore Visualizer
+{% endblock %}
+
+{% block content %}
+
+     <div class = "flex-container">
+        <div class="editor-text-container">
+            <div class = "description">
+                Seems like there was some issue with your script. Please modify it and try again. Happy debugging!
+            </div>
+        </div> 
+        <div class="editor-container">
+            <div id="editor-container3" class="editor"></div>
+            {{ rocher_editor(
+                "editor-container3",
+                "python",
+                source_code,
+                readOnly=False,
+                theme="vs-dark",
+                lineHeight=20,
+                wordWrap='on',
+                minimap={"enabled": False}) 
+            }}
+            <div id="editor-container4" class="editor"></div>
+            {{ rocher_editor(
+                "editor-container4",
+                file_type,
+                file_content,
+                readOnly=True,
+                theme="vs-dark",
+                lineHeight=20,
+                wordWrap='on',
+                minimap={"enabled": False}) 
+            }}
+        </div>
+        <div class="terminal-container">
+            <div class="terminal-window">
+                <span class="green-text">stderr $</span> 
+                {{err |replace('\n', '<br>')|safe}}
+            </div>
+            <div class="terminal-window">
+                <span class="green-text">stdout $</span> 
+                {{out |replace('\n', '<br>')|safe}}
+            </div>
+        </div>
+
+        <div class="editor-buttons">
+            <form method="POST" action="{{ url_for('file_input') }}" class="input-form" id = "editorPreviousForm">
+                <input type="hidden" id="file_options" name="file_options" value="{{ file_type }}">
+                <input type="hidden" id="file" name="file" value="{{ filename }}">
+                <input type="hidden" id="memorable_name" name="memorable_name" value="{{ memorable_name }}">
+                <button type="submit" class="submit-button">Previous</button>
+            </form>
+            <form method="POST" action="{{ url_for('preview_pairs') }}" class="input-form" id = "editorNextForm" on>
+                <input type="hidden" id="file_options" name="file_options" value="{{ file_type }}">
+                <input type="hidden" id="file" name="file" value="{{ filename }}">
+                <input type="hidden" id="memorable_name" name="memorable_name" value="{{ memorable_name }}">
+                <input type="hidden" id="source_code" name="source_code" value="{{ source_code }}">
+                <button type="submit" class="submit-button" onclick="save()">Rerun</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function save() {
+            require(['rocher_editor_editor-container3'], function (editor) {
+                var source_code = editor.getValue();
+                document.getElementById('source_code').value = source_code;
+            });
+        }
+    </script>       
+
+
+{% endblock %}

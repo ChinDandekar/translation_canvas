@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}
+InstructScore Visualizer
+{% endblock %}
+
+{% block content %}
+    <div class = "flex-container">
+        <div class="editor-text-container">
+            <div class = "description">
+                To the left is a simple Python script that will attempt to extract the prediction-reference pairs from your submitted file, which you can see on the right.
+                Please edit this script to match the format of your file, if it does currently not work. Once you click submit, the script will be executed and the extracted pairs will be displayed in 
+                the JSON editor on the next page. You can then execute InstructScore on those pairs, or return to this page to modify your script. Happy coding!
+            </div>
+        </div> 
+        <div class="editor-container">
+            <div id="editor-container" class="editor"></div>
+            {{ rocher_editor(
+                "editor-container",
+                "python",
+                source_code,
+                readOnly=False,
+                theme="vs-dark",
+                lineHeight=20,
+                wordWrap='on',
+                minimap={"enabled": False}) 
+            }}
+            <div id="editor-container2" class="editor"></div>
+            {{ rocher_editor(
+                "editor-container2",
+                file_type,
+                file_content,
+                readOnly=True,
+                wordWrap='on',
+                theme="vs-dark",
+                lineHeight=20
+            )
+            }}
+        </div>
+        
+        <div class="editor-buttons">
+            <form method="GET" action="{{ url_for('file_input') }}" class="input-form" id = "editorPreviousForm">
+                <button type="submit" class="submit-button">Previous</button>
+            </form>
+            <form method="POST" action="{{ url_for('preview_pairs') }}" class="input-form" id = "editorNextForm" on>
+                <input type="hidden" id="source_code" name="source_code" value="{{ source_code }}">
+                <input type="hidden" id="file_options" name="file_options" value="{{ file_type }}">
+                <input type="hidden" id="file" name="file" value="{{ filename }}">
+                <input type="hidden" id="memorable_name" name="memorable_name" value="{{ memorable_name }}">
+                <button type="submit" class="submit-button" onclick="save()">Next</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function save() {
+            require(['rocher_editor_editor-container'], function (editor) {
+                var source_code = editor.getValue();
+                document.getElementById('source_code').value = source_code;
+            });
+        }
+    </script>       
+    
+{% endblock %}

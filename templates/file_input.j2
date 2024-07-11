@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}
+InstructScore Visualizer
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <h2 class="description">Step 1</h2>
+        <form method="POST" action="{{ url_for('file_input') }}" class="input-form" id = "logForm" enctype="multipart/form-data">
+            <label for="file_options" class="field-description-text">Select the type of file you are uploading:</label>
+            <select class="input-field" id="file_options" name="file_options">
+                {% for key, value in file_options.items() %}
+                    <option value="{{ value }}">{{ key }}</option>
+                {% endfor %}
+            </select>
+            <label for = "file" class = "field-description-text">The path to your file (if it is on the same machine running this webapp):</label>
+            <input type="text" id="file" name="file" class="input-field">
+
+            <div class="description">  --- OR (but not both) --- </div>
+            <label for = "file" class = "field-description-text">Upload your file:</label>
+            <input type="file" id="file_upload" name="file_upload" class="input-field">
+            <label for = "memorable_name" class = "field-description-text">Give this run a memorable name:</label>
+            <input type="text" id="memorable_name" name="memorable_name" class="input-field">
+            <button type="submit" class="submit-button">Next</button>
+        </form>
+    </div>
+
+<script>
+    document.getElementById('logForm').addEventListener('submit', function(event) {
+        // Get form elements
+        var file_options = document.getElementById('file_options').value;
+        var file = document.getElementById('file').value;
+        var file_upload = document.getElementById('file_upload').value;
+        var memorable_name = document.getElementById('memorable_name').value;
+
+        // Email validation
+        if (file_options === "") {
+            window.alert("File option is required.");
+            event.preventDefault();
+            return false;
+        }
+
+        // Source and target languages validation
+        if (file === "" && file_upload === "") {
+            window.alert("You must either upload a file or specify a path to file.");
+            event.preventDefault();
+            return false;
+        }
+        if (file !== "" && file_upload !== "") {
+            window.alert("You can only upload a file or specify a path to file, but not both.");
+            event.preventDefault();
+            return false;
+        }
+        if (memorable_name === "") {
+            window.alert("Memorable name is required.");
+            event.preventDefault();
+            return false;
+        }
+    });
+</script>
+{% endblock %}

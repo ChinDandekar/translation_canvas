@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}
+InstructScore Visualizer
+{% endblock %}
+
+{% block content %}
+
+     <div class = "flex-container">
+        <div class="editor-text-container">
+            <div class = "description">
+                Here are some of the prediction-reference pairs extracted from your file. You can now execute InstructScore on these pairs, or return to the previous page to modify your script. Happy coding!
+            </div>
+        </div> 
+        <div class="editor-container">
+            <div id="editor-container3" class="editor"></div>
+            {{ rocher_editor(
+                "editor-container3",
+                "json",
+                pairs,
+                readOnly=True,
+                theme="vs-dark",
+                lineHeight=20,
+                wordWrap='on',
+                minimap={"enabled": False}) 
+            }}
+            <div id="editor-container4" class="editor"></div>
+            {{ rocher_editor(
+                "editor-container4",
+                file_type,
+                file_content,
+                readOnly=True,
+                theme="vs-dark",
+                lineHeight=20,
+                wordWrap='on',
+                minimap={"enabled": False}) 
+            }}
+        </div>
+        <div class="terminal-container">
+            <div class="terminal-window">
+                <span class="green-text">stderr $</span> 
+                {{err |replace('\n', '<br>')|safe}}
+            </div>
+            <div class="terminal-window">
+                <span class="green-text">stdout $</span> 
+                {{out |replace('\n', '<br>')|safe}}
+            </div>
+        </div>
+
+        <div class="editor-buttons">
+            <form method="POST" action="{{ url_for('file_input') }}" class="input-form" id = "editorPreviousForm">
+                <input type="hidden" id="file_options" name="file_options" value="{{ file_type }}">
+                <input type="hidden" id="file" name="file" value="{{ filename }}">
+                <input type="hidden" id="memorable_name" name="memorable_name" value="{{ memorable_name }}">
+                <button type="submit" class="submit-button">Previous</button>
+            </form>
+            <form method="POST" action="{{ url_for('input_form') }}" class="input-form" id = "editorNextForm" on>
+                <input type="hidden" id="file_options" name="file_options" value="{{ file_type }}">
+                <input type="hidden" id="file" name="file" value="{{ filename }}">
+                <input type="hidden" id="memorable_name" name="memorable_name" value="{{ memorable_name }}">
+                <button type="submit" class="submit-button">Next</button>
+            </form>
+        </div>
+    </div>
+
+
+{% endblock %}

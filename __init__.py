@@ -1,12 +1,14 @@
 
 import os
+import subprocess
 import sys
-import numpy as np
-import pandas as pd
 import json
-from instructscore_visualizer.utils import convert_log_to_json, create_and_exec_slurm, instructscore_to_dict
+from instructscore_visualizer.utils import convert_log_to_json, create_and_exec_slurm, instructscore_to_dict, read_file_content, write_file_content
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, session
+import secrets
+import rocher.flask
+import glob
 from werkzeug.utils import secure_filename
 
 path_to_file = os.path.dirname(os.path.abspath(__file__))
@@ -15,6 +17,8 @@ sys.path.append(path_to_file)
 ITEMS_PER_PAGE = 5
 help_text_json = json.load(open(os.path.join(path_to_file, 'help_text.json')))
 UPLOAD_FOLDER = os.path.join(path_to_file, "uploaded_files")  # Specify your upload folder path
+SCRIPTS_BASEPATH = os.path.join(path_to_file, "file_extraction_scripts")  # Specify your flaskcode resource basepath
+extra_files = glob.glob(os.path.join(path_to_file, "file_extraction_scripts", "*.py")) 
 
 
 def create_app(test_config=None):
@@ -29,49 +33,129 @@ def create_app(test_config=None):
     """
     app = Flask(__name__)
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+    app.config['SECRET_KEY'] = secrets.token_hex(16)
+    rocher.flask.editor_register(app)
 
     @app.route('/')
     def index():
         """
-        Render the index.html template.
+        Render the index.j2 template.
 
         Returns:
             str: The rendered HTML template.
         """
         help_text = help_text_json["index"]
-        return render_template('index.html', title='InstructScore Visualizer', help_text=help_text)
+        return render_template('index.j2', title='InstructScore Visualizer', help_text=help_text)
     
     @app.route('/process', methods=['POST'])
-    def process_log_input():
+    def process_input_form():
         """
         Process the log input from the user.
 
         Returns:
             str: The rendered HTML template.
         """
-        filename = request.form['file']
-        if 'file_upload' in request.files:
-            file = request.files['file_upload']
-            filename = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
-            file.save(filename)
+        
+        filename = session['step1_data']['file']
         tgt = request.form['target_lang']
         src = request.form['source_lang']
-        name = request.form['memorable_name']
-        email = request.form['email']
-        new_file=convert_log_to_json(filename, src, tgt, name)
-        create_and_exec_slurm(name, new_file, email)
-        help_text = help_text_json["process_log_input"]
-        return render_template('log_output.html', memorable_name=name, file_name=new_file, help_text=help_text)
+        memorable_name = session['step1_data']['memorable_name']
+        new_file = os.path.join(path_to_file, 'jobs', memorable_name, f'{memorable_name}_extracted.json')
+        create_and_exec_slurm(memorable_name, new_file)
+        help_text = help_text_json["process_input_form"]
+        return render_template('log_output.j2', memorable_name=memorable_name, file_name=new_file, help_text=help_text)
     
-    @app.route('/log_input', methods=['GET'])
-    def log_input():
+    @app.route('/input_form/step1', methods=['GET', 'POST'])
+    def file_input():
         """
-        Render the log_input.html template.
+        Render the file_input.j2 template.
 
         Returns:
             str: The rendered HTML template.
         """
-        help_text = help_text_json["log_input"]
+        help_text = help_text_json["file_input"]
+        
+        if request.method == 'POST':
+            
+            if 'file_data' in request.form:
+                filename = request.form[1]['file']
+                file_type = request.form[1]['file_options']    
+                
+            elif 'file_upload' in request.files and request.files['file_upload'].filename != '':
+                file = request.files['file_upload']
+                filename = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
+                file.save(filename)
+                file_type = request.form['file_options']
+                
+            else:
+                filename = request.form['file']
+                if not os.path.exists(filename):
+                    render_template("error.j2", error_message="File not found")
+                file_type = request.form['file_options']
+            
+            memorable_name = request.form['memorable_name']
+            source_code = read_file_content(os.path.join(path_to_file, 'file_extraction_scripts', f'extract_pairs_from_{file_type}.py'))
+            file_content = read_file_content(filename)
+            return render_template('editor.j2', source_code=source_code, file_content=file_content, file_type=file_type, memorable_name=memorable_name, filename=filename, help_text=help_text)
+        
+        file_options = {
+            "JSON (.json)": "json",
+            "SimulEval output (.log)": "log",
+            "CSV (.csv)": "csv",
+            "TSV (.tsv)": "tsv",
+            "XML (.xml)": "xml",
+            "None of the above ": "txt",
+            }
+        return render_template('file_input.j2', help_text=help_text, file_options=file_options)
+    
+    @app.route('/input_form/step2', methods=['POST'])
+    def preview_pairs():
+        """
+        Preview the extracted pairs from the log file.
+
+        Returns:
+            str: The rendered HTML template.
+        """
+        
+        source_code = request.form['source_code']
+        file_type = request.form['file_options']
+        filename = request.form['file']
+        memorable_name = request.form['memorable_name']
+        write_file_content(os.path.join(path_to_file, 'file_extraction_scripts', f'extract_pairs_from_{file_type}.py'), source_code)
+        results = subprocess.run([sys.executable, os.path.join(path_to_file, 'file_to_json.py'), 
+                        '--file_name', filename, '--memorable_name', memorable_name, '--file_type', file_type],
+                        cwd=path_to_file,
+                        capture_output=True,
+                        text=True)
+        
+        if os.path.exists(os.path.join(path_to_file, 'jobs', memorable_name, f'{memorable_name}_extracted.json')):
+            pairs = read_file_content(os.path.join(path_to_file, 'jobs', memorable_name, f'{memorable_name}_extracted.json'))
+            file_content = read_file_content(filename)
+            help_text = help_text_json["preview_pairs_success"]
+            
+            return render_template('preview_pairs_success.j2', pairs=pairs, file_type=file_type, filename=filename, memorable_name=memorable_name, file_content=file_content, help_text=help_text, err=results.stderr, out = results.stdout)
+        else:
+            file_content = read_file_content(filename)
+            help_text = help_text_json["preview_pairs_failure"]
+            return render_template('preview_pairs_failure.j2', source_code=source_code, file_type=file_type, filename=filename, memorable_name=memorable_name, file_content=file_content, err=results.stderr, out = results.stdout, help_text=help_text)
+        # if os.path.exists(file_path):
+        #     pairs = json.load(open(file_path))
+        #     help_text = help_text_json["preview_pairs"]
+        #     return render_template('preview_pairs.j2', pairs=pairs, help_text=help_text, file=file)
+        # else:
+        #     return render_template('error.j2', error_message="File not found")
+    
+    
+    @app.route('/input_form/step3', methods=['POST'])
+    def input_form():
+        """
+        Render the input_form.j2 template.
+
+        Returns:
+            str: The rendered HTML template.
+        """
+        session['step1_data'] = request.form
+        help_text = help_text_json["input_form"]
         source_languages = ['zh', 'en']
         target_languages = {
             'zh': ['en'],
@@ -84,20 +168,20 @@ def create_app(test_config=None):
         'ru': 'Russian',
         'de': 'German'
     }
-        return render_template('log_input.html', help_text=help_text, source_languages=source_languages, 
+        return render_template('input_form.j2', help_text=help_text, source_languages=source_languages, 
                                target_languages=target_languages, 
                                language_names=language_names)
     
     @app.route('/instruct_in', methods=['GET'])
     def instruct_in():
         """
-        Render the instruct_in.html template.
+        Render the instruct_in.j2 template.
 
         Returns:
             str: The rendered HTML template.
         """
         help_text = help_text_json["instruct_in"]
-        return render_template('instruct_in.html', help_text=help_text)
+        return render_template('instruct_in.j2', help_text=help_text)
     
     @app.route('/visualize_instruct', methods=['POST','GET'])
     def visualize_instruct():
@@ -110,7 +194,6 @@ def create_app(test_config=None):
         # Get page number from the request, default to 1 if not provided
         file = request.form['file']
         file_path = f"{path_to_file}/jobs/{file}/{file}_instructscore.json"
-        print(file_path)
         if os.path.exists(file_path):
 
             page_number = int(request.form.get('current_page', 1))
@@ -123,9 +206,9 @@ def create_app(test_config=None):
             # Calculate total number of pages
             total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
             help_text = help_text_json["visualize_instruct"]
-            return render_template('visualize_instruct.html', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, file=file, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score)
+            return render_template('visualize_instruct.j2', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, file=file, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score)
         
         else:
-            return render_template('error.html', error_message="File not found")
+            return render_template('error.j2', error_message="File not found")
     
     return app

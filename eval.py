@@ -143,7 +143,7 @@ if file_name == 0:
 else:
     print(file_name)
 
-batch_size = 1
+batch_size = 3
 extensions = "json"
 data = load_dataset(
     extensions,
@@ -180,9 +180,9 @@ for i in tqdm(range(0, len(eval_dataset), batch_size)):
     if None in eval_reference:
         print(f"None in eval_batch")
         print(i)
-    # if i == 0:
-    #     print(eval_reference)
-    #     print(eval_prediction)
+    if i == 0:
+        print(eval_reference)
+        print(eval_prediction)
     batch_outputs, scores_ls = scorer.score(ref_ls=eval_reference, out_ls=eval_prediction)
     for j in range(len(batch_outputs)):
         if j < 3: 
