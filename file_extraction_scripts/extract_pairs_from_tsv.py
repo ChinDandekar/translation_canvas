@@ -27,3 +27,22 @@ def extract_pairs_from_tsv(file):
             # Add only prediction and reference data to the pairs list
     
     return pairs
+
+"""
+This is what the expected output should look like:
+[
+    {
+        prediction: "prediction1",
+        reference: "reference1"
+    },
+    {
+        prediction: "prediction2",
+        reference: "reference2"
+    },
+    {
+        prediction: "prediction3",
+        reference: "reference3"
+    },
+    ...
+]
+"""

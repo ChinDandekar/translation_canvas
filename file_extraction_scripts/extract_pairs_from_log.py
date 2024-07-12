@@ -26,5 +26,23 @@ def extract_pairs_from_log(file: str) -> list:
             pairs.append({"prediction": data["prediction"], "reference": data["reference"]})
             # Add only prediction and reference data to the pairs list
     # Please don't change return value
-    raise TypeError("whoops here's an error")
     return pairs
+
+"""
+This is what the expected output should look like:
+[
+    {
+        prediction: "prediction1",
+        reference: "reference1"
+    },
+    {
+        prediction: "prediction2",
+        reference: "reference2"
+    },
+    {
+        prediction: "prediction3",
+        reference: "reference3"
+    },
+    ...
+]
+"""
