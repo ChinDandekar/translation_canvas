@@ -38,11 +38,11 @@ After running this script, if it ran correctly, the output should look like:
     {
         "prediction": prediction2,
         "reference": reference2
-    }.
+    },
     {
         "prediction": prediction3,
         "reference": reference3
-    }.
+    },
     ...
 ]
 """
