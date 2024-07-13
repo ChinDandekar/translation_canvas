@@ -21,11 +21,11 @@ InstructScore Visualizer
         {% for evaluation in input_data%}
             <div class="container">        
                 <div>
-                {% for file, prediction in evaluation.prediction.items() %}
+                {% for file, data in evaluation.runs.items() %}
                     <h1 class="description"> {{ file }}: </h1>
                     
                     <h1 class="pred-ref"> Prediction: </h1>
-                    {% for key, value in prediction.items()%}
+                    {% for key, value in data.prediction.items()%}
                         {% if value == "None" %}
                             <span class="description">{{ key }} </span>
                         {% elif value is mapping %}
@@ -93,7 +93,9 @@ InstructScore Visualizer
 
             <!-- Hidden form for passing file value -->
             <form id="hiddenForm" method="POST" action="{{ url_for('visualize_instruct') }}" style="display: none;">
-                <input type="hidden" name="files" id="files" value={{ files }}>
+                {% for file in files%}
+                    <input type="hidden" name="files" id="files" value={{ file }}>
+                {% endfor %}
                 <input type="hidden" name="current_page" id="current_page" value={{ current_page }}>
             </form>
 

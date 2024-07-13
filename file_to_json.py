@@ -35,7 +35,6 @@ else:
 if not os.path.exists(os.path.join(JOBS, args.memorable_name)):
     os.mkdir(os.path.join(JOBS, args.memorable_name))
     
-dataset = {"instances": pairs}
      
 with open(os.path.join(JOBS, args.memorable_name, args.memorable_name + "_extracted.json"), 'w') as f:
-    json.dump(dataset, f, indent=4)
+    json.dump(pairs, f, indent=4)

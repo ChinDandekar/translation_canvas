@@ -3,7 +3,8 @@ import os
 import subprocess
 import sys
 import json
-from instructscore_visualizer.utils import create_and_exec_slurm, instructscore_to_dict, read_file_content, write_file_content, get_completed_jobs
+from instructscore_visualizer.utils import create_and_exec_slurm, instructscore_to_dict, read_file_content, write_file_content, get_completed_jobs, spawn_independent_process
+from instructscore_visualizer.readwrite_database import read_data
 
 from flask import Flask, render_template, request, session
 import secrets
@@ -19,6 +20,7 @@ help_text_json = json.load(open(os.path.join(path_to_file, 'help_text.json')))
 UPLOAD_FOLDER = os.path.join(path_to_file, "uploaded_files")  # Specify your upload folder path
 SCRIPTS_BASEPATH = os.path.join(path_to_file, "file_extraction_scripts")  # Specify your flaskcode resource basepath
 extra_files = glob.glob(os.path.join(path_to_file, "file_extraction_scripts", "*.py")) 
+logging = False
 
 
 def create_app(test_config=None):
@@ -61,7 +63,8 @@ def create_app(test_config=None):
         src = request.form['source_lang']
         memorable_name = session['step1_data']['memorable_name']
         new_file = os.path.join(path_to_file, 'jobs', memorable_name, f'{memorable_name}_extracted.json')
-        create_and_exec_slurm(memorable_name, new_file)
+        command = f"{sys.executable} {os.path.join(path_to_file, 'spawn_eval_and_monitor.py')} --run_name {memorable_name} --src_lang {src} --tgt_lang {tgt}"
+        spawn_independent_process(command)
         help_text = help_text_json["process_input_form"]
         return render_template('log_output.j2', memorable_name=memorable_name, file_name=new_file, help_text=help_text)
     
@@ -180,7 +183,8 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
-        options = get_completed_jobs()
+        results = read_data("SELECT filename FROM runs WHERE in_progress > 0 ORDER BY se_score DESC;", logging=logging)
+        options = [result[0] for result in results]
         help_text = help_text_json["instruct_in"]
         return render_template('instruct_in.j2', help_text=help_text, options=options)
     
@@ -195,31 +199,71 @@ def create_app(test_config=None):
         # Get page number from the request, default to 1 if not provided
         if 'files' in request.form:
             files = request.form.getlist('files')
-            print(f"files fom next page: {files}")
+            print(f"files fom next page: {files}, type: {type(files)}")
+            # files = json.loads(files[0])
         else:
             files = request.form.getlist('selected_options')
         
-        input_data = []
+        if isinstance(files, str):
+            files = [files]
         
+        input_data = []
+        print(f"Selected files: {files}")
                     
         page_number = int(request.form.get('current_page', 1))
         
         # Calculate the starting index based on the page number
         start_index = (page_number - 1) * ITEMS_PER_PAGE
+        input_data = []
         
-        print(f"{files} are the files")
-        for file in files:
-            data, total_items, num_errors, most_common_errors, avg_errors, se_score = instructscore_to_dict(file, start_index, ITEMS_PER_PAGE)
-            for i,item in enumerate(data):
-                if len(input_data) <= i:
-                    input_data.append({'prediction': {}})
-                input_data[i]['prediction'][file] = item['prediction']
-                input_data[i]['reference'] = item['reference']
+        # get ids for files selected
+        
+        files = tuple(files)
+        results = read_data(f"SELECT id, filename FROM runs WHERE filename IN {files};", logging=logging)
+        run_id_dict = {result[0]: result[1] for result in results}
+        
+        run_ids = tuple([run_id for run_id in run_id_dict.keys()])
+        # first get all references used in the selected files
+        total_items = read_data(f"SELECT COUNT(DISTINCT ref_id) FROM preds WHERE run_id IN {run_ids};", logging=logging)[0][0]
+        results = read_data(f"SELECT DISTINCT ref_id FROM preds WHERE run_id IN {run_ids} OFFSET {start_index} LIMIT {ITEMS_PER_PAGE};", logging=logging)
+        ref_ids = [result[0] for result in results]
+        results = read_data(f"SELECT source_text FROM refs WHERE id IN {tuple(ref_ids)};", logging=logging)
+        ref_source_texts = [result[0] for result in results]
+        
+        # for each ref_id, rank the preds by se_score
+        for ref_id, ref_source_text in zip(ref_ids, ref_source_texts):
             
-        
+            # first, get the ranking of the runs for this reference:
+            query = f"SELECT DISTINCT run_id, se_score FROM preds WHERE run_id IN {run_ids} AND ref_id = {ref_id} ORDER BY se_score DESC;"
+            # print(f"query: {query}")
+            results = read_data(f"SELECT DISTINCT run_id, se_score FROM preds WHERE run_id IN {run_ids} AND ref_id = {ref_id} ORDER BY se_score DESC;", logging=logging)
+            run_ids = tuple([result[0] for result in results])
+            se_scores = [result[1] for result in results]
+            input_data.append({"reference": ref_source_text})
+            input_data[-1]["runs"] = {}
+            for run_id in run_ids:
+                results = read_data(f"SELECT id, se_score FROM preds WHERE ref_id = {ref_id} AND run_id = {run_id};", logging=logging)
+                filename = run_id_dict[run_id]
+                input_data[-1]["runs"][filename] = {}
+                id = results[0][0]
+                se_score = results[0][1]
+                results = read_data(f"SELECT source_text, error_type, error_scale, error_explanation FROM preds_text WHERE pred_id = {id};", logging=logging)
+                print(f"src_text: {results}")
+                
+                predictions = {result[0]: {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None" for result in results}        #gluck figuring what this is lol
+                input_data[-1]["runs"][filename]["se_score"] = se_score
+                input_data[-1]["runs"][filename]["prediction"] = predictions
 
-        print(input_data)            
+        # print(input_data)            
         
+        avg_errors = 1
+        most_common_errors = {
+            "error1": 3,
+            "error2": 2,
+            "error3": 1
+        }
+        num_errors = 1
+        se_score = 0.5
         
         # Calculate total number of pages
         total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE

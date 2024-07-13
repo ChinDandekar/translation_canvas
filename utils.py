@@ -3,9 +3,15 @@ import os
 import string
 import re
 import subprocess
+import sys
 
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 
+
+def spawn_independent_process(command):
+    
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True, universal_newlines=True)
+    return process.pid
 
 def get_completed_jobs():
     """

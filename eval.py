@@ -1,34 +1,34 @@
-import torch
-from datasets import load_dataset
 from tqdm import tqdm
 import re
 import argparse
 import os
 from collections import Counter
 from dotenv import load_dotenv
+from readwrite_database import write_data, read_data
 
 import json
 import sys
 
 sys.setrecursionlimit(10000000)
-print(sys.getrecursionlimit())
 
 sys.path.append("/mnt/taurus/data1/chinmay")
 
 
 
-KEY_INSTANCES = "instances"
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--file_name', type=str, default=0)
-parser.add_argument('--memorable_name', type=str, default=0)
+parser.add_argument('--run_name', type=str, default=0)
+parser.add_argument('--src_lang', type=str, default=0)
+parser.add_argument('--tgt_lang', type=str, default=0)
+parser.add_argument('--run_id', type=int, default=0)
 args = parser.parse_args()
-
+logging = False
 load_dotenv()
 
 from InstructScore_SEScore3.InstructScore import InstructScore
 
 
+JOBS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jobs")
 
 def split_sentence_with_queries(sentence, queries):
     # Create a regular expression pattern to match any of the queries
@@ -129,27 +129,21 @@ def process_text(text, prediction, error_type_counter):
         
     return pred_render_data, num_errors, error_type_counter, se_score
 
-
 model_path = 'xu1998hz/InstructScore'
 
-file_name = args.file_name
-memorable_name = args.memorable_name
-if file_name == 0:
-    raise ValueError("File name not provided")
-else:
-    print(file_name)
+run_name = args.run_name
+src_lang = args.src_lang
+tgt_lang = args.tgt_lang
+run_id = args.run_id
+out_file = os.path.join(JOBS_PATH, run_name, f"{run_name}_out.txt")
+err_file = os.path.join(JOBS_PATH, run_name, f"{run_name}_err.txt")
+sys.stdout = open(out_file, 'w')
+sys.stderr = open(err_file, 'w')
 
 batch_size = 20
-extensions = "json"
-# print(f"This is data: {data}")
 
-# naive partition on training and validation set, 10,000 vs 500
-eval_dataset=json.load(open(file_name, "r"))
+eval_dataset=json.load(open(os.path.join(JOBS_PATH, run_name, f"{run_name}_extracted.json"), 'r'))
 
-# model_path = 'xu1998hz/InstructScore'
-# model = LlamaForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16, cache_dir=os.environ["HF_HOME"]).to('cuda')
-# tokenizer = LlamaTokenizer.from_pretrained(model_path, cache_dir=os.environ["HF_HOME"])
-# tokenizer.pad_token = tokenizer.eos_token
 
 gt_scores, pred_scores = [], []
 
@@ -165,48 +159,31 @@ se_score_total = 0
 for i in tqdm(range(0, len(eval_dataset), batch_size)):
     eval_reference = [eval_dataset[j]['reference'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
     eval_prediction = [eval_dataset[j]['prediction'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
-    if None in eval_reference:
-        print(f"None in eval_batch")
-        print(i)
-    if i == 0:
-        print(eval_reference)
-        print(eval_prediction)
     batch_outputs, scores_ls = scorer.score(ref_ls=eval_reference, out_ls=eval_prediction)
     for j in range(len(batch_outputs)):
-        if j < 3: 
-            print(batch_outputs[j])
         prediction = eval_dataset[i+j]['prediction']
         pred_render_dict, num_errors, error_type_counter, se_score = process_text(batch_outputs[j], prediction, error_type_counter)
         total_errors += num_errors
-        se_score_total += se_score
-        reference = eval_dataset[i+j]['reference']
-        output_json.append({
-            'prediction': pred_render_dict,
-            'reference': reference,
-        })
-    if i < 100:
-        output_json.append({
-            'stats': {
-                'num_errors': total_errors,
-                'most_common_errors': error_type_counter.most_common(3),
-                'average_num_errors': total_errors/len(output_json),
-                'se_score': se_score_total/len(output_json)
-            }
-        })
-        # print("overwriting last dump")
-        json.dump(output_json, open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json", "w"), indent=2)
-        output_json.pop(-1)
+        se_score_total += scores_ls[j]
+        reference = eval_dataset[i+j]['reference'].replace("'", "''")
+        results = read_data(f"SELECT id FROM refs WHERE source_text = '{reference}';", logging=logging)
+        if results == []:
+            results = write_data(f"INSERT INTO refs (source_text, lang) VALUES ('{reference}', '{tgt_lang}'); SELECT id FROM refs ORDER BY id DESC LIMIT 1;", logging=logging)
+        ref_id = results[0][0]
+            
+        pred_id = write_data(f"INSERT INTO preds (se_score, num_errors, ref_id, run_id) VALUES ({scores_ls[j]}, {num_errors}, {ref_id}, {run_id}); SELECT id FROM preds ORDER BY id DESC LIMIT 1;", logging=logging)[0][0]
+        
+        for pred in pred_render_dict:
+            pred_source_text = pred.replace("'", "''")
+            if 'error_type' in pred_render_dict[pred]:
+                error_type = pred_render_dict[pred]['error_type'].replace("'", "''")
+                error_scale = pred_render_dict[pred]['error_scale']
+                error_explanation = pred_render_dict[pred]['error_explanation'].replace("'", "''")
+                results = write_data(f"INSERT INTO preds_text (source_text, error_type, error_scale, error_explanation, pred_id) VALUES ('{pred_source_text}', '{error_type}', '{error_scale}', '{error_explanation}', {pred_id});", logging=logging)
+            else:
+                results = write_data(f"INSERT INTO preds_text (source_text, pred_id) VALUES ('{pred_source_text}', {pred_id});", logging=logging)
+    results = write_data(f"UPDATE runs SET se_score = {se_score_total/(i+batch_size)}, num_predictions = {len(eval_dataset)}, in_progress = {(i+batch_size)/len(eval_dataset)} WHERE id = {run_id};", logging=logging)
 
-output_json.append({
-            'stats': {
-                'num_errors': total_errors,
-                'most_common_errors': error_type_counter.most_common(None),
-                'average_num_errors': total_errors/((i+1)*batch_size),
-                'se_score': se_score_total/((i+1)*batch_size)
-            }
-        })
-
-json.dump(output_json, open(f"{os.path.dirname(os.path.abspath(__file__))}/jobs/{memorable_name}/{memorable_name}_instructscore.json", "w"), indent=2)
      
 
 
