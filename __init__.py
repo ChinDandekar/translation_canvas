@@ -15,12 +15,13 @@ from werkzeug.utils import secure_filename
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(path_to_file)
 # Define the number of items per page
-ITEMS_PER_PAGE = 5
+ITEMS_PER_PAGE = 10
 help_text_json = json.load(open(os.path.join(path_to_file, 'help_text.json')))
 UPLOAD_FOLDER = os.path.join(path_to_file, "uploaded_files")  # Specify your upload folder path
 SCRIPTS_BASEPATH = os.path.join(path_to_file, "file_extraction_scripts")  # Specify your flaskcode resource basepath
 extra_files = glob.glob(os.path.join(path_to_file, "file_extraction_scripts", "*.py")) 
 logging = False
+run_id_dict = {}
 
 
 def create_app(test_config=None):
@@ -37,6 +38,10 @@ def create_app(test_config=None):
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     app.config['SECRET_KEY'] = secrets.token_hex(16)
     rocher.flask.editor_register(app)
+    
+    #create run_id_dict
+    results = read_data("SELECT id, filename FROM runs;")
+    run_id_dict = {result[0]: result[1] for result in results}
 
     @app.route('/')
     def index():
@@ -183,8 +188,8 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
-        results = read_data("SELECT filename FROM runs WHERE in_progress > 0 ORDER BY se_score DESC;", logging=logging)
-        options = [result[0] for result in results]
+        results = read_data("SELECT id, filename FROM runs WHERE in_progress > 0 ORDER BY se_score DESC;", logging=logging)
+        options = {result[0]: result[1] for result in results } 
         help_text = help_text_json["instruct_in"]
         return render_template('instruct_in.j2', help_text=help_text, options=options)
     
@@ -212,48 +217,38 @@ def create_app(test_config=None):
                     
         page_number = int(request.form.get('current_page', 1))
         
+        load_items_per_page = ITEMS_PER_PAGE//len(files)
+        load_items_per_page = load_items_per_page if load_items_per_page > 2 else 3
+        
         # Calculate the starting index based on the page number
-        start_index = (page_number - 1) * ITEMS_PER_PAGE
-        input_data = []
+        start_index = (page_number - 1) * load_items_per_page
         
         # get ids for files selected
         
-        files = tuple(files)
-        results = read_data(f"SELECT id, filename FROM runs WHERE filename IN {files};", logging=logging)
-        run_id_dict = {result[0]: result[1] for result in results}
+        run_ids = tuple(files)
         
-        run_ids = tuple([run_id for run_id in run_id_dict.keys()])
         # first get all references used in the selected files
         total_items = read_data(f"SELECT COUNT(DISTINCT ref_id) FROM preds WHERE run_id IN {run_ids};", logging=logging)[0][0]
-        results = read_data(f"SELECT DISTINCT ref_id FROM preds WHERE run_id IN {run_ids} OFFSET {start_index} LIMIT {ITEMS_PER_PAGE};", logging=logging)
-        ref_ids = [result[0] for result in results]
-        results = read_data(f"SELECT source_text FROM refs WHERE id IN {tuple(ref_ids)};", logging=logging)
-        ref_source_texts = [result[0] for result in results]
+        results = read_data(f"SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page};", logging=logging)
+        ref_ids = tuple([result[0] for result in results])
+        input_data = [{'reference': result[1], 'runs' : {}, 'ref_id': result[0]} for result in results]
         
-        # for each ref_id, rank the preds by se_score
-        for ref_id, ref_source_text in zip(ref_ids, ref_source_texts):
-            
-            # first, get the ranking of the runs for this reference:
-            query = f"SELECT DISTINCT run_id, se_score FROM preds WHERE run_id IN {run_ids} AND ref_id = {ref_id} ORDER BY se_score DESC;"
-            # print(f"query: {query}")
-            results = read_data(f"SELECT DISTINCT run_id, se_score FROM preds WHERE run_id IN {run_ids} AND ref_id = {ref_id} ORDER BY se_score DESC;", logging=logging)
-            run_ids = tuple([result[0] for result in results])
-            se_scores = [result[1] for result in results]
-            input_data.append({"reference": ref_source_text})
-            input_data[-1]["runs"] = {}
+        results = read_data(f"SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename, ref_id  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN {run_ids} AND ref_id IN {ref_ids} ORDER BY ref_id, preds.se_score DESC")
+        for i in range(len(input_data)):
             for run_id in run_ids:
-                results = read_data(f"SELECT id, se_score FROM preds WHERE ref_id = {ref_id} AND run_id = {run_id};", logging=logging)
-                filename = run_id_dict[run_id]
-                input_data[-1]["runs"][filename] = {}
-                id = results[0][0]
-                se_score = results[0][1]
-                results = read_data(f"SELECT source_text, error_type, error_scale, error_explanation FROM preds_text WHERE pred_id = {id};", logging=logging)
-                print(f"src_text: {results}")
-                
-                predictions = {result[0]: {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None" for result in results}        #gluck figuring what this is lol
-                input_data[-1]["runs"][filename]["se_score"] = se_score
-                input_data[-1]["runs"][filename]["prediction"] = predictions
-
+                print(f'cur run_id: {run_id}, dict: {run_id_dict}')
+                cur_filename = get_filename(run_id)
+                input_data[i]['runs'][cur_filename] = {'prediction': {}}
+                for result in results:
+                    if result[5] == input_data[i]['ref_id']:
+                        input_data[i]['runs'][cur_filename]['prediction'][result[0]] =  {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None"
+                    
+        # SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page}
+        
+        # SELECT SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN (4,5,6) AND ref_id IN {ref_ids} ORDER BY ref_id, preds.se_score DESC
+        # SORT BY run_id, se_score DESC
+        
+        # predictions = {result[0]: {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None" for result in results}        #gluck figuring what this is lol
         # print(input_data)            
         
         avg_errors = 1
@@ -266,9 +261,17 @@ def create_app(test_config=None):
         se_score = 0.5
         
         # Calculate total number of pages
-        total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
+        total_pages = (total_items + load_items_per_page - 1) // load_items_per_page
         help_text = help_text_json["visualize_instruct"]
             
         return render_template('visualize_instruct.j2', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, files=files, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score)
     
+    def get_filename(run_id):
+        if run_id not in run_id_dict:
+            results = read_data(f"SELECT id, filename FROM runs WHERE id not in {tuple(run_id_dict.keys())}")
+            for result in results:
+                run_id_dict[result[0]] = result[1]
+                
+        return run_id_dict[int(run_id)]
+
     return app
