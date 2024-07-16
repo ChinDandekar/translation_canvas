@@ -326,3 +326,5 @@ def create_app(test_config=None):
     
     def get_search_query(search_option, search_text):
         return f" {search_option} LIKE '%{search_text}%'"
+    
+    return app

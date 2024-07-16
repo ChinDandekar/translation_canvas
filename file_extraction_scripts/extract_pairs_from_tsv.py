@@ -1,5 +1,6 @@
 import json
 import os
+import pandas as pd
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -19,11 +20,8 @@ def extract_pairs_from_tsv(file):
     """
     pairs = []                # Holds the data that has been read in
 
-    with open(file) as f:
-        lines = f.readlines()   
-        for line in lines:
-            data = json.loads(line)     # Load the data from the line
-            pairs.append({"prediction": data["prediction"], "reference": data["reference"]})
+    translations = pd.read_csv(file, sep='\t')
+    pairs = [{'prediction': row[0], 'reference': row[1]} for row in zip(translations['target'], translations['source'])]
             # Add only prediction and reference data to the pairs list
     
     return pairs

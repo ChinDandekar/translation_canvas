@@ -154,7 +154,7 @@ def instructscore_to_dict(memorable_name, start_index, items_per_page):
 
 def read_file_content(file_path):
     with open(file_path, 'r') as file:
-        return file.read()
+        return file.read(1000000)
     
 def write_file_content(file_path, content):
     with open(file_path, 'w') as file:
