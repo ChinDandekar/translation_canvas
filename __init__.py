@@ -212,10 +212,30 @@ def create_app(test_config=None):
         if isinstance(files, str):
             files = [files]
         
+        search_options = None
+        search_texts = None
+        search_query = None
+        clear_search = False
+        if 'search_options' and 'search_texts' in request.form:
+            search_options = request.form.getlist('search_options')
+            search_texts = request.form.getlist('search_texts')
+            if len(search_options) > 0 and len(search_texts) > 0:
+                search_query = construct_full_query(search_options, search_texts)
+            print(f"search_option: {search_options}")
+            print(f"search_text: {search_texts}")
+        
+        if 'search_query' in session and session['search_query'] and not search_query and not clear_search:
+            search_query = session['search_query']
+        session['search_query'] = search_query
+        
+        print(f"session is {session}")
+        
         input_data = []
         print(f"Selected files: {files}")
+        
                     
         page_number = int(request.form.get('current_page', 1))
+        print(f"Page number: {page_number}")
         
         load_items_per_page = ITEMS_PER_PAGE//len(files)
         load_items_per_page = load_items_per_page if load_items_per_page > 2 else 3
@@ -228,15 +248,26 @@ def create_app(test_config=None):
         run_ids = tuple(files)
         
         # first get all references used in the selected files
-        total_items = read_data(f"SELECT COUNT(DISTINCT ref_id) FROM preds WHERE run_id IN {run_ids};", logging=logging)[0][0]
-        results = read_data(f"SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page};", logging=logging)
+        print(f"search_query: {search_query}")
+        
+        read_query = f"SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page};"
+        if search_query:
+            read_query = f"SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} AND preds.id IN ({search_query}) ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page};"
+            
+        total_items_query = f"SELECT COUNT(DISTINCT ref_id) FROM preds WHERE run_id IN {run_ids};" 
+        if search_query:
+            total_items_query = f"SELECT COUNT(DISTINCT ref_id) FROM preds WHERE run_id IN {run_ids} AND preds.id IN ({search_query});"
+        total_items = read_data(total_items_query, logging=logging)[0][0]
+        
+        results = read_data(read_query, logging=logging)
         ref_ids = tuple([result[0] for result in results])
         input_data = [{'reference': result[1], 'runs' : {}, 'ref_id': result[0]} for result in results]
+        print(f"ref_ids: {ref_ids}")
         
         results = read_data(f"SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename, ref_id  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN {run_ids} AND ref_id IN {ref_ids} ORDER BY ref_id, preds.se_score DESC")
         for i in range(len(input_data)):
             for run_id in run_ids:
-                print(f'cur run_id: {run_id}, dict: {run_id_dict}')
+                # print(f'cur run_id: {run_id}, dict: {run_id_dict}')
                 cur_filename = get_filename(run_id)
                 input_data[i]['runs'][cur_filename] = {'prediction': {}}
                 for result in results:
@@ -264,7 +295,8 @@ def create_app(test_config=None):
         total_pages = (total_items + load_items_per_page - 1) // load_items_per_page
         help_text = help_text_json["visualize_instruct"]
             
-        return render_template('visualize_instruct.j2', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, files=files, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score)
+        return render_template('visualize_instruct.j2', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, files=files, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score,
+                               search_options=search_options, search_texts=search_texts)
     
     def get_filename(run_id):
         if run_id not in run_id_dict:
@@ -273,5 +305,24 @@ def create_app(test_config=None):
                 run_id_dict[result[0]] = result[1]
                 
         return run_id_dict[int(run_id)]
-
-    return app
+    
+    def construct_full_query(search_options, search_texts):
+        search_query = "SELECT DISTINCT preds.id FROM preds"
+        if 'preds_text.error_type' in search_options or 'preds_text.error_scale' in search_options or 'preds_text.error_explanation' in search_options:
+            search_query += " JOIN preds_text ON (preds_text.pred_id = preds.id)"
+        if 'runs.filename' in search_options:
+            search_query += " JOIN runs ON (preds.run_id = runs.id)"
+        if 'refs.source_text' in search_options or 'refs.lang' in search_options:
+            search_query += " JOIN refs ON (refs.id = preds.ref_id)"
+            
+            
+        for i, (search_option, search_text) in enumerate(zip(search_options, search_texts)):
+            if i > 0:
+                search_query += " AND"
+            else:
+                search_query += " WHERE"
+            search_query += get_search_query(search_option, search_text)
+        return search_query
+    
+    def get_search_query(search_option, search_text):
+        return f" {search_option} LIKE '%{search_text}%'"

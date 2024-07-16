@@ -15,9 +15,33 @@ InstructScore Visualizer
 
 {% block content %}
 
-<body>
 
-    <div class = "content-holder">
+
+<body>
+    <div class="content-holder">
+        <div class="container">
+            <form method="POST" action="{{ url_for('visualize_instruct') }}" class="input-form">
+            <select name="search_options" id="selectpicker" data-live-search="true">
+                    <option value="runs.filename">File</option>
+                    <option value="preds.source_text">Prediction Text</option>
+                    <option value="refs.source_text">Reference Text</option>
+                    <option value="preds_text.error_type">Error Type</option>
+                    <option value="preds_text.error_scale">Error Scale</option>
+                    <option value="preds_text.error_explanation">Error Explanation</option>
+                    <option value="preds.se_score">SEScore</option>
+                    <option value="runs.source_language">Source Language</option>
+                    <option value="refs.lang">Target Language</option>
+                </select>
+                <input type="text" name="search_texts" placeholder="Search...">
+                {% for file in files%}
+                    <input type="hidden" name="files" id="files_search" value={{ file }}>
+                {% endfor %}
+                <input type="hidden" name="current_page" id="search_page" value=1>
+                <button type="submit" class="submit-button">Submit</button>
+            </form>
+            
+        </div>
+
         {% for evaluation in input_data%}
             <div class="container">        
                 <div>
@@ -73,7 +97,13 @@ InstructScore Visualizer
         <div class = "pagination">
                 {% if current_page > 1 %}
                     <div>
-                        <button type="submit" class="pagination-button" onclick="previousPage('{{ next_page_url }}')">Previous</button>
+                        <form id="hiddenForm_previous" method="POST" action="{{ url_for('visualize_instruct') }}">
+                            {% for file in files%}
+                                <input type="hidden" name="files" id="files_previous" value={{ file }}>
+                            {% endfor %}
+                            <input type="hidden" name="current_page" id="previous_page" value={{ current_page-1}}>
+                            <button type="submit" class="pagination-button">Previous</button>
+                        </form>
                     </div>
                 {% endif %}
             
@@ -85,47 +115,18 @@ InstructScore Visualizer
                 {% if current_page < total_pages %}
                     <!-- Next button with onclick event to update the form -->
                     <div>
-                        <button type="submit" class="pagination-button" onclick="nextPage('{{ next_page_url }}')">Next</button>
+                        <form id="hiddenForm_next" method="POST" action="{{ url_for('visualize_instruct') }}">
+                            {% for file in files%}
+                                <input type="hidden" name="files" id="files_next" value={{ file }}>
+                            {% endfor %}
+                            <input type="hidden" name="current_page" id="next_page" value={{ current_page+1}}>
+                            <button type="submit" class="pagination-button">Next</button>
+                        </form>
                     </div>
                 {% endif %}
            
 
-            <!-- Hidden form for passing file value -->
-            <form id="hiddenForm" method="POST" action="{{ url_for('visualize_instruct') }}" style="display: none;">
-                {% for file in files%}
-                    <input type="hidden" name="files" id="files" value={{ file }}>
-                {% endfor %}
-                <input type="hidden" name="current_page" id="current_page" value={{ current_page }}>
-            </form>
 
-            <!-- JavaScript function to update file value and submit form -->
-            <script>
-                function nextPage(nextPageUrl) {
-                    var fileInputValue = document.getElementById('files').value;
-                    window.console.log("Logging file input value:")
-                    window.console.log(fileInputValue)
-                    var current_page = document.getElementById('current_page').value;
-                    window.console.log("Logging current page:")
-                    window.console.log(current_page)
-                    document.getElementById('hiddenForm').action = nextPageUrl;
-                    document.getElementById('files').value = fileInputValue;
-                    document.getElementById('current_page').value = parseInt(current_page)+1;
-                    document.getElementById('hiddenForm').submit();
-                }
-
-                function previousPage(nextPageUrl) {
-                    var fileInputValue = document.getElementById('files').value;
-                    window.console.log("Logging file input value:")
-                    window.console.log(fileInputValue)
-                    var current_page = document.getElementById('current_page').value;
-                    window.console.log("Logging current page:")
-                    window.console.log(current_page)
-                    document.getElementById('hiddenForm').action = nextPageUrl;
-                    document.getElementById('files').value = fileInputValue;
-                    document.getElementById('current_page').value = parseInt(current_page)-1;
-                    document.getElementById('hiddenForm').submit();
-                }
-            </script>
         </div>
     </div>
 
