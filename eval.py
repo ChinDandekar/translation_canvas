@@ -166,12 +166,13 @@ for i in tqdm(range(0, len(eval_dataset), batch_size)):
         total_errors += num_errors
         se_score_total += scores_ls[j]
         reference = eval_dataset[i+j]['reference'].replace("'", "''")
+        prediction = prediction.replace("'", "''")
         results = read_data(f"SELECT id FROM refs WHERE source_text = '{reference}';", logging=logging)
         if results == []:
             results = write_data(f"INSERT INTO refs (source_text, lang) VALUES ('{reference}', '{tgt_lang}'); SELECT id FROM refs ORDER BY id DESC LIMIT 1;", logging=logging)
         ref_id = results[0][0]
-            
-        pred_id = write_data(f"INSERT INTO preds (se_score, num_errors, ref_id, run_id) VALUES ({scores_ls[j]}, {num_errors}, {ref_id}, {run_id}); SELECT id FROM preds ORDER BY id DESC LIMIT 1;", logging=logging)[0][0]
+        
+        pred_id = write_data(f"INSERT INTO preds (se_score, source_text, num_errors, ref_id, run_id) VALUES ({scores_ls[j]}, '{prediction}', {num_errors}, {ref_id}, {run_id}); SELECT id FROM preds ORDER BY id DESC LIMIT 1;", logging=logging)[0][0]
         
         for pred in pred_render_dict:
             pred_source_text = pred.replace("'", "''")

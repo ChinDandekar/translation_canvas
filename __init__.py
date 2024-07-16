@@ -216,13 +216,16 @@ def create_app(test_config=None):
         search_texts = None
         search_query = None
         clear_search = False
-        if 'search_options' and 'search_texts' in request.form:
-            search_options = request.form.getlist('search_options')
-            search_texts = request.form.getlist('search_texts')
+        print(f'request.form: {request.form}')
+        if 'search_options[]' and 'search_texts[]' in request.form:
+            search_options = request.form.getlist('search_options[]')
+            search_texts = request.form.getlist('search_texts[]')
+            conjunctions = request.form.getlist('conjunctions[]')
             if len(search_options) > 0 and len(search_texts) > 0:
-                search_query = construct_full_query(search_options, search_texts)
+                search_query = construct_full_query(search_options, search_texts, conjunctions)
             print(f"search_option: {search_options}")
             print(f"search_text: {search_texts}")
+            print(f"conjunctions: {conjunctions}")
         
         if 'search_query' in session and session['search_query'] and not search_query and not clear_search:
             search_query = session['search_query']
@@ -306,7 +309,7 @@ def create_app(test_config=None):
                 
         return run_id_dict[int(run_id)]
     
-    def construct_full_query(search_options, search_texts):
+    def construct_full_query(search_options, search_texts, conjunctions):
         search_query = "SELECT DISTINCT preds.id FROM preds"
         if 'preds_text.error_type' in search_options or 'preds_text.error_scale' in search_options or 'preds_text.error_explanation' in search_options:
             search_query += " JOIN preds_text ON (preds_text.pred_id = preds.id)"
@@ -315,13 +318,21 @@ def create_app(test_config=None):
         if 'refs.source_text' in search_options or 'refs.lang' in search_options:
             search_query += " JOIN refs ON (refs.id = preds.ref_id)"
             
-            
+        
+        is_last_conjunctor_not = False    
         for i, (search_option, search_text) in enumerate(zip(search_options, search_texts)):
             if i > 0:
-                search_query += " AND"
+                if conjunctions[i-1] == 'NOT':
+                    search_query += f" AND preds.id NOT IN (SELECT preds.id FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) AND {search_option} LIKE '%{search_text}%')"
+                    is_last_conjunctor_not = True
+                else: 
+                    search_query += f" {conjunctions[i-1]}"
             else:
                 search_query += " WHERE"
-            search_query += get_search_query(search_option, search_text)
+            if not is_last_conjunctor_not:
+                search_query += get_search_query(search_option, search_text)
+            else:
+                is_last_conjunctor_not = False
         return search_query
     
     def get_search_query(search_option, search_text):

@@ -21,7 +21,11 @@ def extract_pairs_from_tsv(file):
     pairs = []                # Holds the data that has been read in
 
     translations = pd.read_csv(file, sep='\t')
-    pairs = [{'prediction': row[0], 'reference': row[1]} for row in zip(translations['target'], translations['source'])]
+    id_set = set()
+    for index, row in translations.iterrows():
+        if row['docSegId'] not in id_set and row['system'] == 'ANVITA':
+            pairs.append({'prediction': row['target'], 'reference': row['source']})
+            id_set.add(row['docSegId'])
             # Add only prediction and reference data to the pairs list
     
     return pairs

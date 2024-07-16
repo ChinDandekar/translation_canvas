@@ -18,21 +18,50 @@ InstructScore Visualizer
 
 
 <body>
+
+<style>
+        .input-form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .form-row select, .form-row input {
+            margin-right: 10px;
+        }
+
+        .submit-button {
+            margin-top: 10px;
+        }
+
+        .remove-button {
+            margin-left: 10px;
+            cursor: pointer;
+            color: red;
+        }
+    </style>
+
     <div class="content-holder">
         <div class="container">
-            <form method="POST" action="{{ url_for('visualize_instruct') }}" class="input-form">
-            <select name="search_options" id="selectpicker" data-live-search="true">
-                    <option value="runs.filename">File</option>
-                    <option value="preds.source_text">Prediction Text</option>
-                    <option value="refs.source_text">Reference Text</option>
-                    <option value="preds_text.error_type">Error Type</option>
-                    <option value="preds_text.error_scale">Error Scale</option>
-                    <option value="preds_text.error_explanation">Error Explanation</option>
-                    <option value="preds.se_score">SEScore</option>
-                    <option value="runs.source_language">Source Language</option>
-                    <option value="refs.lang">Target Language</option>
-                </select>
-                <input type="text" name="search_texts" placeholder="Search...">
+            <form method="POST" action="{{ url_for('visualize_instruct') }}" class="input-form" id="search-form">
+                <div class="form-row" id="form-row-1">
+                    <select name="search_options[]" class="search-options" onchange="handleOptionChange(this)">
+                        <option value="" disabled selected>Search Field</option>
+                        <option value="preds.source_text">Prediction Text</option>
+                        <option value="refs.source_text">Reference Text</option>
+                        <option value="preds_text.error_type">Error Type</option>
+                        <option value="preds_text.error_scale">Error Scale</option>
+                        <option value="preds_text.error_explanation">Error Explanation</option>
+                        <option value="runs.source_language">Source Language</option>
+                        <option value="refs.lang">Target Language</option>
+                    </select>
+                    <input type="text" name="search_texts[]" placeholder="Search...">
+                </div>
                 {% for file in files%}
                     <input type="hidden" name="files" id="files_search" value={{ file }}>
                 {% endfor %}
@@ -136,4 +165,97 @@ InstructScore Visualizer
 
     
 </body>
+
+
+   <script>
+        const searchOptions = [
+            { value: 'runs.filename', text: 'File' },
+            { value: 'preds.source_text', text: 'Prediction Text' },
+            { value: 'refs.source_text', text: 'Reference Text' },
+            { value: 'preds_text.error_type', text: 'Error Type' },
+            { value: 'preds_text.error_scale', text: 'Error Scale' },
+            { value: 'preds_text.error_explanation', text: 'Error Explanation' },
+            { value: 'preds.se_score', text: 'SEScore' },
+            { value: 'runs.source_language', text: 'Source Language' },
+            { value: 'refs.lang', text: 'Target Language' }
+        ];
+
+        function handleOptionChange(selectElement) {
+            const formRowId = selectElement.parentElement.id;
+            const form = document.getElementById('search-form');
+
+            if (!form.querySelector(`#${formRowId} .conjunction`)) {
+                // Add conjunction dropdown
+                const conjunctionSelect = document.createElement('select');
+                conjunctionSelect.name = 'conjunctions[]';
+                conjunctionSelect.className = 'conjunction';
+                conjunctionSelect.innerHTML = `
+                    <option value="" disabled selected>Add another search</option>
+                    <option value="AND">AND</option>
+                    <option value="OR">OR</option>
+                    <option value="NOT">AND NOT</option>
+                `;
+                conjunctionSelect.onchange = function() {
+                    if (!form.querySelector(`form-row-${form.querySelectorAll('.form-row').length-1}`)) {
+                        addNewSearchRow(selectElement, conjunctionSelect);
+                    }
+                };
+
+                selectElement.parentElement.appendChild(conjunctionSelect);
+            }
+        }
+
+        function addNewSearchRow(previousSelect, conjunctionSelect) {
+            const form = document.getElementById('search-form');
+            const selectedOptions = [...form.querySelectorAll('.search-options')].map(select => select.value);
+            const existingRowId = conjunctionSelect.parentElement.id;
+
+            let remainingOptions = searchOptions.filter(option => !selectedOptions.includes(option.value));
+
+            if (remainingOptions.length === 0 || form.querySelector(`#${existingRowId} .added-row`)) return;
+
+            // Create new form row
+            const newRow = document.createElement('div');
+            newRow.className = 'form-row added-row';
+            newRow.id = `form-row-${form.querySelectorAll('.form-row').length + 1}`;
+
+            // Create new search option dropdown
+            const newSelect = document.createElement('select');
+            newSelect.name = 'search_options[]';
+            newSelect.className = 'search-options';
+            newSelect.innerHTML = '<option value="" disabled selected>Search Field</option>';
+            newSelect.onchange = function() {
+                handleOptionChange(newSelect);
+            };
+
+            remainingOptions.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option.value;
+                optionElement.text = option.text;
+                newSelect.appendChild(optionElement);
+            });
+
+            // Create new search text input
+            const newInput = document.createElement('input');
+            newInput.type = 'text';
+            newInput.name = 'search_texts[]';
+            newInput.placeholder = 'Search...';
+
+            // Create remove button
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'remove-button';
+            removeButton.innerText = 'Remove';
+            removeButton.onclick = function() {
+                form.removeChild(newRow);
+            };
+
+            newRow.appendChild(newSelect);
+            newRow.appendChild(newInput);
+            newRow.appendChild(removeButton);
+
+            form.insertBefore(newRow, form.querySelector('.submit-button'));
+        }
+    </script>
+
 {% endblock %}
