@@ -149,8 +149,18 @@ gt_scores, pred_scores = [], []
 
 output_json = []
 
+task_type = ""
+if args.src_lang=='zh':
+    if args.tgt_lang=='en':
+        task_type = 'mt_zh-en'
+elif args.src_lang=='en':
+    if args.tgt_lang=='es':
+        task_type = 'mt_en-es'
+    elif args.tgt_lang=='ru':
+        task_type = 'mt_en-ru'
+    elif args.tgt_lang=='de':
+        task_type = 'mt_en-de'
 
-task_type = "mt_en-es"
 scorer = InstructScore(task_type=task_type, batch_size=batch_size, cache_dir='/mnt/gemini/data1/chinmay/transformers_cache')
 
 total_errors = 0

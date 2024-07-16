@@ -1,5 +1,6 @@
 import json
 import os
+import pandas as pd
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -17,13 +18,14 @@ def extract_pairs_from_tsv(file):
         FileNotFoundError: If the specified log file does not exist.
 
     """
-    pairs = []                # Holds the data that has been read in
-
-    with open(file) as f:
-        lines = f.readlines()   
-        for line in lines:
-            data = json.loads(line)     # Load the data from the line
-            pairs.append({"prediction": data["prediction"], "reference": data["reference"]})
+    pairs = []
+    translations = pd.read_csv(file, sep='\t')
+    global_set = set()
+    for index, row in translations.iterrows():
+        if row['globalSegId'] not in global_set and row['system'] == 'ANVITA':
+            global_set.add(row['globalSegId'])
+            pairs.append({'prediction': row['target'], 'reference': row['source']})
+    
             # Add only prediction and reference data to the pairs list
     
     return pairs
