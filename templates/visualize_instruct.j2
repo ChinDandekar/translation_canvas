@@ -234,6 +234,12 @@ InstructScore Visualizer
         }
 
         function addNewSearchRow(previousSelect, conjunctionSelect) {
+            if (!document.getElementById(`form-row-${parseInt(previousSelect.parentElement.id.split('-')[2]) + 1}`)) {
+                _addNewSearchRow(previousSelect, conjunctionSelect);             
+            }
+        };
+
+        function _addNewSearchRow(previousSelect, conjunctionSelect) {
             const form = document.getElementById('search-form');
             const selectedOptions = [...form.querySelectorAll('.search-options')].map(select => select.value);
 
@@ -250,6 +256,8 @@ InstructScore Visualizer
             const newSelect = document.createElement('select');
             newSelect.name = 'search_options[]';
             newSelect.className = 'search-options';
+            newSelect.innerHTML = `
+                <option value="" disabled selected>Search Field</option>`;
             newSelect.onchange = function() {
                 handleOptionChange(newSelect);
             };
