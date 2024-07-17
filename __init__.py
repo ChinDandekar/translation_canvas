@@ -212,9 +212,10 @@ def create_app(test_config=None):
         if isinstance(files, str):
             files = [files]
         
-        search_options = None
-        search_texts = None
+        search_options = []
+        search_texts = []
         search_query = None
+        conjunctions = []
         clear_search = False
         print(f'request.form: {request.form}')
         if 'search_options[]' and 'search_texts[]' in request.form:
@@ -229,10 +230,15 @@ def create_app(test_config=None):
         
         if 'search_query' in session and session['search_query'] and not search_query and not clear_search:
             search_query = session['search_query']
+            search_options = session['search_options']
+            search_texts = session['search_texts']
+            conjunctions = session['conjunctions']
         session['search_query'] = search_query
+        session['search_options'] = search_options
+        session['search_texts'] = search_texts
+        session['conjunctions'] = conjunctions
         
         print(f"session is {session}")
-        
         input_data = []
         print(f"Selected files: {files}")
         
@@ -297,9 +303,12 @@ def create_app(test_config=None):
         # Calculate total number of pages
         total_pages = (total_items + load_items_per_page - 1) // load_items_per_page
         help_text = help_text_json["visualize_instruct"]
+        
+        print(f"search_options: {search_options}")
+        
             
         return render_template('visualize_instruct.j2', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, files=files, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score,
-                               search_options=search_options, search_texts=search_texts)
+                               search_options=search_options, search_texts=search_texts, conjunctions=conjunctions)
     
     def get_filename(run_id):
         if run_id not in run_id_dict:

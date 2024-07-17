@@ -48,26 +48,55 @@ InstructScore Visualizer
 
     <div class="content-holder">
         <div class="container">
-            <form method="POST" action="{{ url_for('visualize_instruct') }}" class="input-form" id="search-form">
-                <div class="form-row" id="form-row-1">
+             <form method="POST" action="{{ url_for('visualize_instruct') }}" class="input-form" id="search-form">
+                {% for i in range(search_options|length) %}
+                <div class="form-row" id="form-row-{{ i+1 }}">
                     <select name="search_options[]" class="search-options" onchange="handleOptionChange(this)">
                         <option value="" disabled selected>Search Field</option>
-                        <option value="preds.source_text">Prediction Text</option>
-                        <option value="refs.source_text">Reference Text</option>
-                        <option value="preds_text.error_type">Error Type</option>
-                        <option value="preds_text.error_scale">Error Scale</option>
-                        <option value="preds_text.error_explanation">Error Explanation</option>
-                        <option value="runs.source_language">Source Language</option>
-                        <option value="refs.lang">Target Language</option>
+                        <option value="preds.source_text" {% if "preds.source_text" == search_options[i] %}selected{% endif %}>Prediction Text</option>
+                        <option value="refs.source_text" {% if "refs.source_text" == search_options[i] %}selected{% endif %}>Reference Text</option>
+                        <option value="preds_text.error_type" {% if "preds_text.error_type" == search_options[i] %}selected{% endif %}>Error Type</option>
+                        <option value="preds_text.error_scale" {% if "preds_text.error_scale" == search_options[i] %}selected{% endif %}>Error Scale</option>
+                        <option value="preds_text.error_explanation" {% if "preds_text.error_explanation" == search_options[i] %}selected{% endif %}>Error Explanation</option>
+                        <option value="runs.source_language" {% if "runs.source_language" == search_options[i] %}selected{% endif %}>Source Language</option>
+                        <option value="refs.lang" {% if "refs.lang" == search_options[i] %}selected{% endif %}>Target Language</option>
                     </select>
-                    <input type="text" name="search_texts[]" placeholder="Search...">
+                    <input type="text" name="search_texts[]" placeholder="Search..." value="{{ search_texts[i] }}">
+                    {% if i < conjunctions|length %}
+                        <select name="conjunctions[]" class="conjunction" onchange="addNewSearchRow(this)">
+                            <option value="" disabled>Add another search term:</option>
+                            <option value="AND" {% if conjunctions[i] == 'AND' %}selected{% endif %}>AND</option>
+                            <option value="OR" {% if conjunctions[i] == 'OR' %}selected{% endif %}>OR</option>
+                            <option value="NOT" {% if conjunctions[i] == 'NOT' %}selected{% endif %}>NOT</option>
+                        </select>
+                    {% endif %}
+                    {% if i > 0%}
+                         <button type="button" class="remove-button" onclick="this.parentElement.remove()">Remove</button>
+                    {% endif %}
                 </div>
+                {% endfor %}
+                {% if search_options|length == 0 %}
+                    <div class="form-row" id="form-row-1">
+                        <select name="search_options[]" class="search-options" onchange="handleOptionChange(this)">
+                            <option value="" disabled selected>Search Field</option>
+                            <option value="preds.source_text">Prediction Text</option>
+                            <option value="refs.source_text">Reference Text</option>
+                            <option value="preds_text.error_type">Error Type</option>
+                            <option value="preds_text.error_scale">Error Scale</option>
+                            <option value="preds_text.error_explanation">Error Explanation</option>
+                            <option value="runs.source_language">Source Language</option>
+                            <option value="refs.lang">Target Language</option>
+                        </select>
+                        <input type="text" name="search_texts[]" placeholder="Search...">
+                    </div>
+                {% endif %}
+                <input type="hidden" name="current_page" id="search_page" value="{{ current_page }}">
                 {% for file in files%}
                     <input type="hidden" name="files" id="files_search" value={{ file }}>
                 {% endfor %}
-                <input type="hidden" name="current_page" id="search_page" value=1>
-                <button type="submit" class="submit-button">Submit</button>
+                <button type="submit" class="submit-button">Search</button>
             </form>
+            
             
         </div>
 
@@ -168,14 +197,12 @@ InstructScore Visualizer
 
 
    <script>
-        const searchOptions = [
-            { value: 'runs.filename', text: 'File' },
+         const searchOptionsAll = [
             { value: 'preds.source_text', text: 'Prediction Text' },
             { value: 'refs.source_text', text: 'Reference Text' },
             { value: 'preds_text.error_type', text: 'Error Type' },
             { value: 'preds_text.error_scale', text: 'Error Scale' },
             { value: 'preds_text.error_explanation', text: 'Error Explanation' },
-            { value: 'preds.se_score', text: 'SEScore' },
             { value: 'runs.source_language', text: 'Source Language' },
             { value: 'refs.lang', text: 'Target Language' }
         ];
@@ -190,15 +217,16 @@ InstructScore Visualizer
                 conjunctionSelect.name = 'conjunctions[]';
                 conjunctionSelect.className = 'conjunction';
                 conjunctionSelect.innerHTML = `
-                    <option value="" disabled selected>Add another search</option>
+                    <option value="" disabled selected>Add another search term:</option>
                     <option value="AND">AND</option>
                     <option value="OR">OR</option>
-                    <option value="NOT">AND NOT</option>
+                    <option value="NOT">NOT</option>
                 `;
                 conjunctionSelect.onchange = function() {
-                    if (!form.querySelector(`form-row-${form.querySelectorAll('.form-row').length-1}`)) {
-                        addNewSearchRow(selectElement, conjunctionSelect);
-                    }
+                        if (!document.getElementById(`form-row-${parseInt(selectElement.parentElement.id.split('-')[2]) + 1}`)) {
+                            addNewSearchRow(selectElement, conjunctionSelect);
+                            
+                        }
                 };
 
                 selectElement.parentElement.appendChild(conjunctionSelect);
@@ -208,11 +236,10 @@ InstructScore Visualizer
         function addNewSearchRow(previousSelect, conjunctionSelect) {
             const form = document.getElementById('search-form');
             const selectedOptions = [...form.querySelectorAll('.search-options')].map(select => select.value);
-            const existingRowId = conjunctionSelect.parentElement.id;
 
-            let remainingOptions = searchOptions.filter(option => !selectedOptions.includes(option.value));
+            let remainingOptions = searchOptionsAll.filter(option => !selectedOptions.includes(option.value));
 
-            if (remainingOptions.length === 0 || form.querySelector(`#${existingRowId} .added-row`)) return;
+            if (remainingOptions.length === 0) return;
 
             // Create new form row
             const newRow = document.createElement('div');
@@ -223,7 +250,6 @@ InstructScore Visualizer
             const newSelect = document.createElement('select');
             newSelect.name = 'search_options[]';
             newSelect.className = 'search-options';
-            newSelect.innerHTML = '<option value="" disabled selected>Search Field</option>';
             newSelect.onchange = function() {
                 handleOptionChange(newSelect);
             };
@@ -256,6 +282,19 @@ InstructScore Visualizer
 
             form.insertBefore(newRow, form.querySelector('.submit-button'));
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const searchOptions = {{ search_options|tojson }};
+            const searchTexts = {{ search_texts|tojson }};
+            const conjunctions = {{ conjunctions|tojson }};
+
+            if (searchOptions.length > 0) {
+                const form = document.getElementById('search-form');
+                for (let i = 1; i < searchOptions.length; i++) {
+                    addNewSearchRow(null, form.querySelector('.conjunction'));
+                }
+            }
+        });
     </script>
 
 {% endblock %}
