@@ -18,14 +18,14 @@ def extract_pairs_from_tsv(file):
         FileNotFoundError: If the specified log file does not exist.
 
     """
-    pairs = []
+    pairs = []                # Holds the data that has been read in
+
     translations = pd.read_csv(file, sep='\t')
-    global_set = set()
+    id_set = set()
     for index, row in translations.iterrows():
-        if row['globalSegId'] not in global_set and row['system'] == 'ANVITA':
-            global_set.add(row['globalSegId'])
+        if row['docSegId'] not in id_set and row['system'] == 'ANVITA':
             pairs.append({'prediction': row['target'], 'reference': row['source']})
-    
+            id_set.add(row['docSegId'])
             # Add only prediction and reference data to the pairs list
     
     return pairs

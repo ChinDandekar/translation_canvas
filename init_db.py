@@ -41,6 +41,7 @@ results = con.execute("""CREATE TABLE IF NOT EXISTS refs (
 results = con.execute("""
                       CREATE TABLE IF NOT EXISTS preds (
                           id INT DEFAULT nextval('preds_id_sequence') PRIMARY KEY,
+                          source_text TEXT,
                           se_score FLOAT,
                           num_errors INT,
                           ref_id INT,
