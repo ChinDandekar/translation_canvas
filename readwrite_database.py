@@ -9,9 +9,10 @@ if not os.path.exists(path_to_rwlock):
     open(path_to_rwlock, 'w').close()
 pid = os.getpid()
 
-rw_lock = fasteners.InterProcessReaderWriterLock(path_to_rwlock)
+
 
 def write_data(query: str, logging = False) -> list:
+    rw_lock = fasteners.InterProcessReaderWriterLock(path_to_rwlock)
     with rw_lock.write_lock():
         if logging:
             log("writing data lock acquired")
@@ -26,6 +27,7 @@ def write_data(query: str, logging = False) -> list:
     return results
 
 def read_data(query: str, logging=False) -> list:
+    rw_lock = fasteners.InterProcessReaderWriterLock(path_to_rwlock)
     with rw_lock.read_lock():
         if logging:
             log("reading data lock acquired")

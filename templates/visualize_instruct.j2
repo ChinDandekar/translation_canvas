@@ -44,6 +44,36 @@ InstructScore Visualizer
             cursor: pointer;
             color: red;
         }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            left: 0;
+        }
+
+        .move-up-button {
+            margin-bottom: 5px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .move-down-button {
+            margin-top: 5px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .prediction {
+        position: relative;
+        padding-left: 20px; /* Adjust this value if needed to prevent overlap with buttons */
+        padding-bottom: 30px;
+        }
+
     </style>
 
     <div class="content-holder">
@@ -100,44 +130,58 @@ InstructScore Visualizer
             
         </div>
 
-        {% for evaluation in input_data%}
-            <div class="container">        
+        {% for evaluation in input_data %}
+            {% set outerloop_index = loop.index%}
+            <div class="container">
                 <div>
-                {% for file, data in evaluation.runs.items() %}
-                    {% if data.prediction %}
-                        <div class = 'container-with-shadow'>
-                            <h1 class="description"> {{ file }}: </h1>
-                            <h1 class="pred-ref"> Prediction: </h1>
-                            {% for key, value in data.prediction.items()%}
-                                {% if value == "None" %}
-                                    <span class="description">{{ key }} </span>
-                                {% elif value is mapping %}
-                                    {% if value.error_scale == "Minor" %}
-                                        <span class="orange-text">{{ key }} </span>
-                                    {% else %}
-                                        <span class="red-text">{{ key }} </span>
+                    {% for file, data in evaluation.runs.items() %}
+                        {% if data.prediction %}
+                            <div class="container-with-shadow prediction" id="prediction-{{ outerloop_index }}-{{ loop.index }}">
+                                <div class="button-container">
+                                    {% if loop.index > 0 %}
+                                        <button type="button" class="move-up-button" onclick="moveUp('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬆</button>
                                     {% endif %}
-                                    <span class="tooltip">
-                                        Error Type: {{ value.error_type }}<br>
-                                        Major/minor: {{ value.error_scale }}<br>
-                                        Error explanation: {{ value.error_explanation }}
-                                    </span>
-                                {% else %}
-                                    {{ value }}
-                                {% endif %}
-                                {% if not loop.last %} {% endif %}
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endfor %}
+                                </div>
+
+                                <h1 class="description">{{ file }}:</h1>
+                                <h1 class="pred-ref">Prediction:</h1>
+                                {% for key, value in data.prediction.items() %}
+                                    {% if value == "None" %}
+                                        <span class="description">{{ key }}</span>
+                                    {% elif value is mapping %}
+                                        {% if value.error_scale == "Minor" %}
+                                            <span class="orange-text">{{ key }}</span>
+                                        {% else %}
+                                            <span class="red-text">{{ key }}</span>
+                                        {% endif %}
+                                        <span class="tooltip">
+                                            Error Type: {{ value.error_type }}<br>
+                                            Major/minor: {{ value.error_scale }}<br>
+                                            Error explanation: {{ value.error_explanation }}
+                                        </span>
+                                    {% else %}
+                                        {{ value }}
+                                    {% endif %}
+                                    {% if not loop.last %} {% endif %}
+                                {% endfor %}
+
+                                <div class="button-container">
+                                    {% if not loop.last %}
+                                        <button type="button" class="move-down-button" onclick="moveDown('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬇</button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
                 </div>
 
-                <div class = 'container-with-shadow'> 
-                    <h1 class="pred-ref" > Reference: </h1>            
+                <div class="container-with-shadow">
+                    <h1 class="pred-ref">Reference:</h1>
                     <span class="description">{{ evaluation.reference }}</span>
                 </div>
             </div>
         {% endfor %}
+
 
         <div class="stats-circle">
             <img src="{{ url_for('static', filename='stats.png') }}" class="stats-circle-image">
@@ -306,6 +350,24 @@ InstructScore Visualizer
                 }
             }
         });
+
+    function moveUp(predictionId) {
+        const currentElement = document.getElementById(predictionId);
+        const previousElement = currentElement.previousElementSibling;
+
+        if (previousElement && previousElement.classList.contains('prediction')) {
+            currentElement.parentNode.insertBefore(currentElement, previousElement);
+        }
+    }
+
+    function moveDown(predictionId) {
+        const currentElement = document.getElementById(predictionId);
+        const nextElement = currentElement.nextElementSibling;
+
+        if (nextElement && nextElement.classList.contains('prediction')) {
+            currentElement.parentNode.insertBefore(nextElement, currentElement);
+        }
+    }
     </script>
 
 {% endblock %}
