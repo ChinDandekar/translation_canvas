@@ -247,7 +247,7 @@ def create_app(test_config=None):
         print(f"Page number: {page_number}")
         
         load_items_per_page = ITEMS_PER_PAGE//len(files)
-        load_items_per_page = load_items_per_page if load_items_per_page > 2 else 3
+        load_items_per_page = load_items_per_page if load_items_per_page >= 1 else 1
         
         # Calculate the starting index based on the page number
         start_index = (page_number - 1) * load_items_per_page
@@ -274,7 +274,7 @@ def create_app(test_config=None):
         input_data = [{'reference': result[1], 'runs' : {}, 'ref_id': result[0]} for result in results]
         print(f"ref_ids: {ref_ids}")
         
-        results = read_data(f"SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename, ref_id, run_id  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN {run_ids} AND ref_id IN {ref_ids} ORDER BY ref_id, preds.se_score DESC")
+        results = read_data(f"SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename, ref_id, run_id, preds.id, preds.se_score  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN {run_ids} AND ref_id IN {ref_ids} ORDER BY ref_id, preds.se_score DESC")
         
         empty_predictions_per_run = []
         for i in range(len(input_data)):
@@ -289,6 +289,8 @@ def create_app(test_config=None):
                         input_data[i]['runs'][cur_filename]['prediction'][result[0]] =  {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None"
                         if not popped:
                             empty_predictions_per_run.pop()
+                            input_data[i]['runs'][cur_filename]['se_score'] = result[8]
+                            input_data[i]['runs'][cur_filename]['pred_id'] = result[7]
                             popped = True
         print(f"empty_predictions_per_run: {empty_predictions_per_run}")
         for i, filename in empty_predictions_per_run:
