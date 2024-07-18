@@ -275,16 +275,26 @@ def create_app(test_config=None):
         print(f"ref_ids: {ref_ids}")
         
         results = read_data(f"SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename, ref_id, run_id  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN {run_ids} AND ref_id IN {ref_ids} ORDER BY ref_id, preds.se_score DESC")
+        
+        empty_predictions_per_run = []
         for i in range(len(input_data)):
             for run_id in run_ids:
                 # print(f'cur run_id: {run_id}, dict: {run_id_dict}')
                 cur_filename = get_filename(run_id)
                 input_data[i]['runs'][cur_filename] = {'prediction': {}}
+                empty_predictions_per_run.append((i, cur_filename))
+                popped = False
                 for result in results:
                     if result[5] == input_data[i]['ref_id'] and cur_filename == result[4]:
                         input_data[i]['runs'][cur_filename]['prediction'][result[0]] =  {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None"
-                        
-                    
+                        if not popped:
+                            empty_predictions_per_run.pop()
+                            popped = True
+        print(f"empty_predictions_per_run: {empty_predictions_per_run}")
+        for i, filename in empty_predictions_per_run:
+            del input_data[i]['runs'][filename]
+        # clean out the input_data to remove empty runs
+
         # SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page}
         
         # SELECT SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN (4,5,6) AND ref_id IN {ref_ids} ORDER BY ref_id, preds.se_score DESC
