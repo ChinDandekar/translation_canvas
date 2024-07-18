@@ -139,7 +139,7 @@ InstructScore Visualizer
                         <div class="container-with-shadow prediction" id="prediction-{{ outerloop_index }}-{{ loop.index }}">
                             {% if not loop.first %}
                                 <div class="button-container">
-                                    <button type="button" class="move-up-button" onclick="moveUp('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬆</button>
+                                    <button type="button" class="move-up-button" id="moveUp-{{ outerloop_index }}-{{ loop.index }}" onclick="moveUp('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬆</button>
                                 </div>
                             {% endif %}
 
@@ -168,7 +168,7 @@ InstructScore Visualizer
 
                             <div class="button-container">
                                 {% if not loop.last %}
-                                    <button type="button" class="move-down-button" onclick="moveDown('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬇</button>
+                                    <button type="button" class="move-down-button" id="moveDown-{{ outerloop_index }}-{{ loop.index }}" onclick="moveDown('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬇</button>
                                 {% endif %}
                             </div>
                         </div>
@@ -358,6 +358,8 @@ InstructScore Visualizer
         if (previousElement && previousElement.classList.contains('prediction')) {
             currentElement.parentNode.insertBefore(currentElement, previousElement);
         }
+
+        recalibrateButtons(predictionId);
     }
 
     function moveDown(predictionId) {
@@ -367,7 +369,109 @@ InstructScore Visualizer
         if (nextElement && nextElement.classList.contains('prediction')) {
             currentElement.parentNode.insertBefore(nextElement, currentElement);
         }
+
+        recalibrateButtons(predictionId);
     }
+
+    function recalibrateButtons(predictionId) {
+        const currentElement = document.getElementById(predictionId);
+        const predictionIdParts = predictionId.split('-');
+        const number1 = predictionIdParts[1];
+        const number2 = predictionIdParts[2];
+        const extractedString = `-${number1}-${number2}`;
+        const downButtonId = `moveDown${extractedString}`;
+        const upButtonId = `moveUp${extractedString}`;
+
+        // Check if it is now the bottom element
+        const newNextElementSibling = currentElement.nextElementSibling;
+        if (!newNextElementSibling || !newNextElementSibling.classList.contains('prediction')) {
+            const downButton = document.getElementById(`moveDown${extractedString}`);
+            if (downButton) {
+                downButton.remove();
+            }
+        }
+        else {
+            // Check if the current element has a down button, if not, add one
+            let downButton = document.getElementById(downButtonId);
+            if (!downButton) {
+                downButton = document.createElement('button');
+                downButton.type = 'button';
+                downButton.className = 'move-down-button';
+                downButton.innerText = '⬇';
+                downButton.id = downButtonId;
+                downButton.onclick = function() {
+                    moveDown(predictionId);
+                };
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'button-container';
+                buttonContainer.appendChild(downButton);
+                currentElement.appendChild(buttonContainer);
+
+            }
+
+            // add up button to the next element
+
+
+            // Check if the next element is the bottom element, then remove the down button
+            const nextElement = newNextElementSibling.nextElementSibling;
+            if (!nextElement || !nextElement.classList.contains('prediction')) {
+                const nextElementId = newNextElementSibling.id;
+                const nextElementExtractedString = nextElementId.split('-');
+                const nextElementDownButtonId = `moveDown-${nextElementExtractedString[1]}-${nextElementExtractedString[2]}`;
+                const nextDownButton = document.getElementById(nextElementDownButtonId);
+                if (nextDownButton) {
+                    button_container = nextDownButton.parentElement;
+                    nextDownButton.remove();
+                    button_container.remove();
+                }
+            }
+        }
+
+        // Check if it is now the top element
+        const newPreviousElement = currentElement.previousElementSibling;
+        if (!newPreviousElement || !newPreviousElement.classList.contains('prediction')) {
+            const upButton = document.getElementById(`moveUp${extractedString}`);
+            if (upButton) {
+                upButton.remove();
+            }
+        }
+        else {
+            // Check if the current element has a up button, if not, add one
+            let upButton = document.getElementById(upButtonId);
+            if (!upButton) {
+                upButton = document.createElement('button');
+                upButton.type = 'button';
+                upButton.className = 'move-up-button';
+                upButton.innerText = '⬆';
+                upButton.id = upButtonId;
+                upButton.onclick = function() {
+                    moveUp(predictionId);
+                };
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'button-container';
+                buttonContainer.appendChild(upButton);
+                currentElement.prepend(buttonContainer);
+
+            }
+
+            // Check if the previous element is the first element, then remove the up button
+            const previousElement = newPreviousElement.previousElementSibling;
+            if (!previousElement || !previousElement.classList.contains('prediction')) {
+                const previousElementId = newPreviousElement.id;
+                const previousElementExtractedString = previousElementId.split('-');
+                const previousElementUpButtonId = `moveUp-${previousElementExtractedString[1]}-${previousElementExtractedString[2]}`;
+                const previousUpButton = document.getElementById(previousElementUpButtonId);
+                if (previousUpButton) {
+                    button_container = previousUpButton.parentElement;
+                    previousUpButton.remove();
+                    button_container.remove();
+                }
+            }
+        }
+    }
+
+
+
     </script>
 
 {% endblock %}
