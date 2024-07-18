@@ -104,28 +104,29 @@ InstructScore Visualizer
             <div class="container">        
                 <div>
                 {% for file, data in evaluation.runs.items() %}
-                    <h1 class="description"> {{ file }}: </h1>
-                    
-                    <h1 class="pred-ref"> Prediction: </h1>
-                    {% for key, value in data.prediction.items()%}
-                        {% if value == "None" %}
-                            <span class="description">{{ key }} </span>
-                        {% elif value is mapping %}
-                            {% if value.error_scale == "Minor" %}
-                                <span class="orange-text">{{ key }} </span>
+                    {% if data.prediction %}
+                        <h1 class="description"> {{ file }}: </h1>
+                        <h1 class="pred-ref"> Prediction: </h1>
+                        {% for key, value in data.prediction.items()%}
+                            {% if value == "None" %}
+                                <span class="description">{{ key }} </span>
+                            {% elif value is mapping %}
+                                {% if value.error_scale == "Minor" %}
+                                    <span class="orange-text">{{ key }} </span>
+                                {% else %}
+                                    <span class="red-text">{{ key }} </span>
+                                {% endif %}
+                                <span class="tooltip">
+                                    Error Type: {{ value.error_type }}<br>
+                                    Major/minor: {{ value.error_scale }}<br>
+                                    Error explanation: {{ value.error_explanation }}
+                                </span>
                             {% else %}
-                                <span class="red-text">{{ key }} </span>
+                                {{ value }}
                             {% endif %}
-                            <span class="tooltip">
-                                Error Type: {{ value.error_type }}<br>
-                                Major/minor: {{ value.error_scale }}<br>
-                                Error explanation: {{ value.error_explanation }}
-                            </span>
-                        {% else %}
-                            {{ value }}
-                        {% endif %}
-                        {% if not loop.last %} {% endif %}
-                    {% endfor %}
+                            {% if not loop.last %} {% endif %}
+                        {% endfor %}
+                    {% endif %}
                 {% endfor %}
                 </div>
 

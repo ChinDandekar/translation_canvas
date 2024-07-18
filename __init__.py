@@ -267,21 +267,23 @@ def create_app(test_config=None):
         if search_query:
             total_items_query = f"SELECT COUNT(DISTINCT ref_id) FROM preds WHERE run_id IN {run_ids} AND preds.id IN ({search_query});"
         total_items = read_data(total_items_query, logging=logging)[0][0]
+        print(total_items)
         
         results = read_data(read_query, logging=logging)
         ref_ids = tuple([result[0] for result in results])
         input_data = [{'reference': result[1], 'runs' : {}, 'ref_id': result[0]} for result in results]
         print(f"ref_ids: {ref_ids}")
         
-        results = read_data(f"SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename, ref_id  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN {run_ids} AND ref_id IN {ref_ids} ORDER BY ref_id, preds.se_score DESC")
+        results = read_data(f"SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename, ref_id, run_id  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN {run_ids} AND ref_id IN {ref_ids} ORDER BY ref_id, preds.se_score DESC")
         for i in range(len(input_data)):
             for run_id in run_ids:
                 # print(f'cur run_id: {run_id}, dict: {run_id_dict}')
                 cur_filename = get_filename(run_id)
                 input_data[i]['runs'][cur_filename] = {'prediction': {}}
                 for result in results:
-                    if result[5] == input_data[i]['ref_id']:
+                    if result[5] == input_data[i]['ref_id'] and cur_filename == result[4]:
                         input_data[i]['runs'][cur_filename]['prediction'][result[0]] =  {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None"
+                        
                     
         # SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page}
         
@@ -290,7 +292,7 @@ def create_app(test_config=None):
         
         # predictions = {result[0]: {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None" for result in results}        #gluck figuring what this is lol
         # print(input_data)            
-        
+        json.dump(results, open('input_data.json', 'w'), indent=4)
         avg_errors = 1
         most_common_errors = {
             "error1": 3,
