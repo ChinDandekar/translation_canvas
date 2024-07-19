@@ -144,7 +144,7 @@ InstructScore Visualizer
                             {% endif %}
 
                             <h1 class="description">{{ file }}, SEScore: {{ data.se_score }}</h1>
-                            <h1 class="pred-ref">Prediction (id: {{ data.pred_id }}) </h1>
+                            <h1 class="pred-ref">Prediction</h1> <span style="display: hidden;" id="pred-id-{{ outerloop_index }}-{{ loop.index }}">{{data.pred_id}}</span>
                             {% set is_not_first = True %}
                             {% for key, value in data.prediction.items() %}
                                 {% if value == "None" %}
@@ -360,6 +360,8 @@ InstructScore Visualizer
         }
 
         recalibrateButtons(predictionId);
+
+        log_ranking(currentElement, previousElement);
     }
 
     function moveDown(predictionId) {
@@ -371,6 +373,7 @@ InstructScore Visualizer
         }
 
         recalibrateButtons(predictionId);
+        log_ranking(nextElement, currentElement);
     }
 
     function recalibrateButtons(predictionId) {
@@ -498,6 +501,30 @@ InstructScore Visualizer
 
     }
 
+    function log_ranking(higherElement, lowerElement) {
+        higherIndices = higherElement.id.split('-');
+        lowerIndices = lowerElement.id.split('-');
+
+        higherPredId = document.getElementById(`pred-id-${higherIndices[1]}-${higherIndices[2]}`).innerText;
+        lowerPredId = document.getElementById(`pred-id-${lowerIndices[1]}-${lowerIndices[2]}`).innerText;
+
+        fetch('/log', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                higherPredId: higherPredId,
+                lowerPredId: lowerPredId
+            })
+        })
+            .then(response => {
+                console.log("Success!: ", response);
+            })
+            .catch(error => {
+                console.log("Failure :( : ", response);
+            });
+    }
 
     </script>
 

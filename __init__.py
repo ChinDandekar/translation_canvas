@@ -6,11 +6,13 @@ import json
 from instructscore_visualizer.utils import create_and_exec_slurm, instructscore_to_dict, read_file_content, write_file_content, get_completed_jobs, spawn_independent_process
 from instructscore_visualizer.readwrite_database import read_data
 
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request, session, jsonify
 import secrets
 import rocher.flask
 import glob
 from werkzeug.utils import secure_filename
+
+from datetime import datetime
 
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(path_to_file)
@@ -22,6 +24,9 @@ SCRIPTS_BASEPATH = os.path.join(path_to_file, "file_extraction_scripts")  # Spec
 extra_files = glob.glob(os.path.join(path_to_file, "file_extraction_scripts", "*.py")) 
 logging = False
 run_id_dict = {}
+ranking_log = os.path.join(path_to_file, "tmp", "ranking.log")
+if not os.path.exists(ranking_log):
+    open(ranking_log, 'w').close()
 
 
 def create_app(test_config=None):
@@ -361,4 +366,29 @@ def create_app(test_config=None):
     def get_search_query(search_option, search_text):
         return f" {search_option} LIKE '%{search_text}%'"
     
+    
+    @app.route('/log', methods=['POST'])
+    def log_ranking():
+        now = datetime.now()
+        dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        try: 
+            if isinstance(request.data, bytes):
+                data_str = request.data.decode('utf-8')
+                data = json.loads(data_str)
+            else:
+                data = request.get_json()
+
+            
+            
+            higher_pred_id = data.get('higherPredId')
+            lower_pred_id = data.get('lowerPredId')
+            
+            with open(ranking_log, 'a') as f:
+                f.write(f"{dt_string}: {higher_pred_id} > {lower_pred_id}\n")
+            
+            return jsonify({"status": "success", "message": "Log entry created"}), 200
+    
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)}), 400
+
     return app
