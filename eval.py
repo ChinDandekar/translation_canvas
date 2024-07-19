@@ -22,7 +22,7 @@ parser.add_argument('--src_lang', type=str, default=0)
 parser.add_argument('--tgt_lang', type=str, default=0)
 parser.add_argument('--run_id', type=int, default=0)
 args = parser.parse_args()
-logging = True
+logging = False
 load_dotenv()
 
 from InstructScore_SEScore3.InstructScore import InstructScore
