@@ -76,7 +76,7 @@ InstructScore Visualizer
                 <input type="hidden" id="source_code" name="source_code" value="{{ source_code }}">
                 <button type="submit" class="submit-button" onclick="save()">Rerun</button>
             </form>
-            <form method="POST" action="{{ url_for('input_form') }}" class="input-form" id = "editorNextForm" on>
+            <form method="POST" action="{{ url_for('process_input_form') }}" class="input-form" id = "editorNextForm" on>
                 <input type="hidden" id="file_options" name="file_options" value="{{ file_type }}">
                 <input type="hidden" id="file" name="file" value="{{ filename }}">
                 <input type="hidden" id="memorable_name" name="memorable_name" value="{{ memorable_name }}">

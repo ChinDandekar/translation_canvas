@@ -132,6 +132,27 @@
             color: black
         }
 
+        .input-field-editable {
+            min-width: 100%;
+            max-width: 100%;
+            width: 50vh;
+            height: auto;
+            overflow: hidden;
+            resize: horizontal;
+            box-sizing: border-box;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            color: black
+        }
+
+        .input-field-editable:focus {
+            border-color: #66afe9;
+            outline: 0;
+            box-shadow: 0 0 8px rgba(102, 175, 233, .6);
+        }
+
         /* Submit button wrapper */
         .submit-button-wrapper {
             display: inline-block;
@@ -153,7 +174,7 @@
             padding: 10px 20px;
             text-align: center;
             text-decoration: none;
-            font-size: 25px;
+            font-size: 20px;
             border-radius: 5px;
             border: none;
             cursor: pointer;
@@ -163,6 +184,27 @@
 
         /* Submit button hover */
         .submit-button:hover {
+            background-color: #6480E5;
+            transform: scale(1.05);
+        }
+        
+        /* Submit button */
+        .remove-button {
+            background-color: #6480E5;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        /* Submit button hover */
+        .remove-button:hover {
             background-color: #6480E5;
             transform: scale(1.05);
         }

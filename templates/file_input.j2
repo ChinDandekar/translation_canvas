@@ -20,8 +20,6 @@ InstructScore Visualizer
             <div class="description">  --- OR (but not both) --- </div>
             <label for = "file" class = "field-description-text">Upload your file:</label>
             <input type="file" id="file_upload" name="file_upload" class="input-field">
-            <label for = "memorable_name" class = "field-description-text">Give this run a memorable name:</label>
-            <input type="text" id="memorable_name" name="memorable_name" class="input-field" placeholder="model_name-variation-run">
             <button type="submit" class="submit-button">Next</button>
         </form>
     </div>
@@ -32,7 +30,6 @@ InstructScore Visualizer
         var file_options = document.getElementById('file_options').value;
         var file = document.getElementById('file').value;
         var file_upload = document.getElementById('file_upload').value;
-        var memorable_name = document.getElementById('memorable_name').value;
 
         // Email validation
         if (file_options === "") {
@@ -52,11 +49,7 @@ InstructScore Visualizer
             event.preventDefault();
             return false;
         }
-        if (memorable_name === "") {
-            window.alert("Memorable name is required.");
-            event.preventDefault();
-            return false;
-        }
+
     });
 </script>
 {% endblock %}

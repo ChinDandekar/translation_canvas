@@ -67,18 +67,56 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
-        
-        filename = session['step1_data']['file']
-        tgt = request.form['target_lang']
-        src = request.form['source_lang']
+        print(f"session in process_input_form: {session}")
+        print(f"process_input_form request.form: {request.form}")
+        tgt = session['step1_data']['target_lang']
+        src = session['step1_data']['source_lang']
         memorable_name = session['step1_data']['memorable_name']
         new_file = os.path.join(path_to_file, 'jobs', memorable_name, f'{memorable_name}_extracted.json')
         command = f"{sys.executable} {os.path.join(path_to_file, 'spawn_eval_and_monitor.py')} --run_name {memorable_name} --src_lang {src} --tgt_lang {tgt}"
+        if session['step1_data']['input_type'] != 'file':
+            data_dict = request.form.to_dict()
+            extracted_data = []
+            for i in range(len(data_dict)//2):
+                if data_dict.get(f'prediction{i}', -1) != -1:
+                    extracted_data.append({'prediction': data_dict[f'prediction{i}'], 'reference': data_dict[f'reference{i}']})
+            
+            if not os.path.exists(os.path.join(path_to_file, 'jobs', memorable_name)):
+                os.mkdir(os.path.join(path_to_file, 'jobs', memorable_name))
+                
+            json.dump(extracted_data, open(new_file, 'w'), indent=4)
         spawn_independent_process(command)
         help_text = help_text_json["process_input_form"]
         return render_template('log_output.j2', memorable_name=memorable_name, file_name=new_file, help_text=help_text)
     
     @app.route('/input_form/step1', methods=['GET', 'POST'])
+    def basic_info():
+        """
+        Render the basic_info.j2 template.
+
+        Returns:
+            str: The rendered HTML template.
+        """
+        help_text = help_text_json["basic_info"]
+        source_languages = ['zh', 'en']
+        target_languages = {
+            'zh': ['en'],
+            'en': ['es', 'ru', 'de']
+        }
+        language_names = {
+        'zh': 'Chinese',
+        'en': 'English',
+        'es': 'Spanish',
+        'ru': 'Russian',
+        'de': 'German'
+    }
+        
+        
+        return render_template('input_form.j2', help_text=help_text, source_languages=source_languages, 
+                               target_languages=target_languages, 
+                               language_names=language_names)
+    
+    @app.route('/input_form/step2', methods=['GET', 'POST'])
     def file_input():
         """
         Render the file_input.j2 template.
@@ -87,8 +125,8 @@ def create_app(test_config=None):
             str: The rendered HTML template.
         """
         help_text = help_text_json["file_input"]
-        
-        if request.method == 'POST':
+        print(f"request.form: {request.form}, session: {session}")
+        if 'file_options' in request.form:              # user has chosen a file type
             
             if 'file_data' in request.form:
                 filename = request.form[1]['file']
@@ -106,22 +144,28 @@ def create_app(test_config=None):
                     render_template("error.j2", error_message="File not found")
                 file_type = request.form['file_options']
             
-            memorable_name = request.form['memorable_name']
+            memorable_name = session['step1_data']['memorable_name']
+            session['step1_data']['file'] = filename
             source_code = read_file_content(os.path.join(path_to_file, 'file_extraction_scripts', f'extract_pairs_from_{file_type}.py'))
             file_content = read_file_content(filename)
             return render_template('editor.j2', source_code=source_code, file_content=file_content, file_type=file_type, memorable_name=memorable_name, filename=filename, help_text=help_text)
         
-        file_options = {
-            "JSON (.json)": "json",
-            "SimulEval output (.log)": "log",
-            "CSV (.csv)": "csv",
-            "TSV (.tsv)": "tsv",
-            "XML (.xml)": "xml",
-            "None of the above ": "txt",
-            }
-        return render_template('file_input.j2', help_text=help_text, file_options=file_options)
+        if 'input_type' in request.form:
+            session['step1_data'] = request.form
+            if request.form['input_type'] == 'file':
+                file_options = {
+                    "JSON (.json)": "json",
+                    "SimulEval output (.log)": "log",
+                    "CSV (.csv)": "csv",
+                    "TSV (.tsv)": "tsv",
+                    "XML (.xml)": "xml",
+                    "None of the above ": "txt",
+                    }
+                return render_template('file_input.j2', help_text=help_text, file_options=file_options) 
+            else:
+                return render_template('manual_input.j2', help_text=help_text)
     
-    @app.route('/input_form/step2', methods=['POST'])
+    @app.route('/input_form/step3', methods=['POST'])
     def preview_pairs():
         """
         Preview the extracted pairs from the log file.
@@ -134,6 +178,8 @@ def create_app(test_config=None):
         file_type = request.form['file_options']
         filename = request.form['file']
         memorable_name = request.form['memorable_name']
+        session['step1_data']['file'] = filename
+        print(f"session in preview_pairs: {session}")
         write_file_content(os.path.join(path_to_file, 'file_extraction_scripts', f'extract_pairs_from_{file_type}.py'), source_code)
         results = subprocess.run([sys.executable, os.path.join(path_to_file, 'file_to_json.py'), 
                         '--file_name', filename, '--memorable_name', memorable_name, '--file_type', file_type],
@@ -158,32 +204,6 @@ def create_app(test_config=None):
         # else:
         #     return render_template('error.j2', error_message="File not found")
     
-    
-    @app.route('/input_form/step3', methods=['POST'])
-    def input_form():
-        """
-        Render the input_form.j2 template.
-
-        Returns:
-            str: The rendered HTML template.
-        """
-        session['step1_data'] = request.form
-        help_text = help_text_json["input_form"]
-        source_languages = ['zh', 'en']
-        target_languages = {
-            'zh': ['en'],
-            'en': ['es', 'ru', 'de']
-        }
-        language_names = {
-        'zh': 'Chinese',
-        'en': 'English',
-        'es': 'Spanish',
-        'ru': 'Russian',
-        'de': 'German'
-    }
-        return render_template('input_form.j2', help_text=help_text, source_languages=source_languages, 
-                               target_languages=target_languages, 
-                               language_names=language_names)
     
     @app.route('/instruct_in', methods=['GET'])
     def instruct_in():

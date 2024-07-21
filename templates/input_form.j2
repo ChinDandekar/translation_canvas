@@ -28,12 +28,16 @@ InstructScore Visualizer
 
 {% block content %}
     <div class="container">
-        <form method="POST" action="{{ url_for('process_input_form') }}" class="input-form" id = "logForm" enctype="multipart/form-data">
-            <h3 class="description">Final Step!</h3>
-            <div class = "description">
-                Please provide the source and target languages
-            </div>
-=
+        <form method="POST" action="{{ url_for('file_input') }}" class="input-form" id = "logForm" enctype="multipart/form-data">
+            <h3 class="description">Step 1</h3>
+            <label for = "memorable_name" class = "field-description-text">Give this run a memorable name:</label>
+            <input type="text" id="memorable_name" name="memorable_name" class="input-field" placeholder="model_name-variation-run">
+            <label for = "input_type", id = "input_type_label" class = "field-description-text">Select the type of input:</label>
+            <select id="input_type" name="input_type" class="input-field">
+                <option value="" disabled selected>Select Input Type</option>
+                <option value="manual">Manual Input (Prediction-Reference Pairs will be entered manually)</option>
+                <option value="file">File Input (Prediction-Reference Pairs are in a file)</option>
+            </select>
             <label for = "source_lang" class = "field-description-text">Source language:</label>
             <select id="source_lang" name="source_lang" class="input-field" onchange="updateTargetLanguages()">
                 <option value="" disabled selected>Select Source Language</option>
@@ -48,7 +52,7 @@ InstructScore Visualizer
                 <!-- Options will be dynamically populated by JavaScript -->
             </select>
             
-            <button type="submit" class="submit-button">Submit</button>
+            <button type="submit" class="submit-button">Next</button>
         </form>
     </div>
 
@@ -88,7 +92,8 @@ InstructScore Visualizer
             // Get form elements
             var sourceLang = document.getElementById('source_lang').value;
             var targetLang = document.getElementById('target_lang').value;
-
+            var memorable_name = document.getElementById('memorable_name').value;
+            var input_type = document.getElementById('input_type').value;
     
             // Source and target languages validation
             if (sourceLang === "") {
@@ -98,6 +103,16 @@ InstructScore Visualizer
             }
             if (targetLang === "") {
                 window.alert("Target language is required.");
+                event.preventDefault();
+                return false;
+            }
+            if (memorable_name === "") {
+                window.alert("Memorable name is required.");
+                event.preventDefault();
+                return false;
+            }
+            if (input_type === "") {
+                window.alert("Input type is required.");
                 event.preventDefault();
                 return false;
             }

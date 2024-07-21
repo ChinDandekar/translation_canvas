@@ -27,5 +27,8 @@
     },
     "preview_pairs_failure": {
         "Your script created some errors. Check the output and error messages for more details about your errors ": "None"
+    },
+    "basic_info": {
+        "This is the basic information about the data.": "None"
     }
 }

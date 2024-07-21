@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}
+InstructScore Visualizer
+{% endblock %}
+
+{% block content %}
+
+
+
+    <div class = 'content-holder'>
+        <div class = "container">
+            <div class="description">
+                Enter the model's prediction and reference pairs below. Click the add pair button to add another pair.
+                Click the remove pair button to remove the pair. Click the submit button to submit the pairs.
+            </div>
+        </div>
+
+        <form id="pairForm" method="post" action="{{ url_for('process_input_form') }}" class="input-form">
+            <div class="container">
+                <label for="prediction0" class="field-description-text">Prediction:</label>
+                <textarea id="prediction0" name="prediction0" class="input-field-editable" required></textarea> 
+                <label for="reference0" class="field-description-text">Reference:</label>
+                <textarea id="reference0" name="reference0" class="input-field-editable" required></textarea>
+                <button type="button" class="remove-button" style="display: none;" onclick="this.closest('.container').remove();
+            updateRemoveButtons();">Remove Pair</button>
+            </div>
+        </form>
+    
+        <div class="editor-buttons">
+            <button type="button" id="addPairButton" class="submit-button">Add Pair</button>
+            <button type="submit" id="submitButton" class="submit-button">Submit</button>
+        </div>
+    </div>
+
+    <script>
+        var index = 0;
+        document.getElementById('addPairButton').addEventListener('click', function() {
+            const pairForm = document.getElementById('pairForm');
+            const newPairIndex = index;
+            index++;
+
+            const newPairContainer = createContainer(newPairIndex);
+            const removeButton = document.createElement('button');
+            removeButton.setAttribute('type', 'button');
+            removeButton.classList.add('remove-button');
+            removeButton.textContent = 'Remove Pair';
+            removeButton.addEventListener('click', function() {
+                newPairContainer.remove();
+                updateRemoveButtons();
+            });
+            newPairContainer.appendChild(removeButton);
+
+            pairForm.appendChild(newPairContainer);
+            updateRemoveButtons();
+        });
+
+        document.querySelector('.remove-button').addEventListener('click', function() {
+            this.closest('.container').remove();
+            updateRemoveButtons();
+        });
+
+        updateRemoveButtons();
+
+    function createLabel(text, id) {
+        const label = document.createElement('label');
+        label.setAttribute('for', id);
+        label.classList.add('field-description-text');
+        label.textContent = text;
+        return label;
+    }
+
+    function createInput(type, id, name, required) {
+        const input = document.createElement('textarea');
+        input.setAttribute('type', type);
+        input.setAttribute('id', id);
+        input.setAttribute('name', name);
+        input.classList.add('input-field-editable');
+        if (required) {
+            input.required = true;
+        }
+        input.addEventListener('input', autoResize);
+        input.addEventListener('blur', renderUnicode);
+        return input;
+    }
+
+    function createContainer(newPairIndex) {
+        const container = document.createElement('div');
+        container.classList.add('container');
+
+        const predictionLabel = createLabel('Prediction:', 'prediction' + (newPairIndex + 1));
+        const predictionInput = createInput('text', 'prediction' + (newPairIndex + 1), 'prediction' + (newPairIndex + 1), true);
+
+        const referenceLabel = createLabel('Reference:', 'reference' + (newPairIndex + 1));
+        const referenceInput = createInput('text', 'reference' + (newPairIndex + 1), 'reference' + (newPairIndex + 1), true);
+
+        container.appendChild(predictionLabel);
+        container.appendChild(predictionInput);
+        container.appendChild(referenceLabel);
+        container.appendChild(referenceInput);
+
+        return container;
+    }
+
+     function updateRemoveButtons() {
+        const pairForm = document.getElementById('pairForm');
+        if (pairForm.length > 3) {
+            pairForm[2].style.display = '';
+        } else {
+            pairForm[2].style.display = 'none';
+        }
+    }
+
+    function autoResize() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    }
+
+    function renderUnicode(event) {
+            let textarea = event.target;
+            let content = textarea.value;
+
+            // Replace Unicode sequences with actual characters
+            content = content.replace(/\\u([\dA-Fa-f]{4})/g, (match, group) => {
+                return String.fromCharCode(parseInt(group, 16));
+            });
+
+            textarea.value = content;
+        }
+
+    document.getElementById('submitButton').addEventListener('click', function() {
+        const pairForm = document.getElementById('pairForm');
+        const inputs = pairForm.querySelectorAll('input');
+        let allFilled = true;
+        inputs.forEach(input => {
+            if (input.value.trim() === '') {
+                allFilled = false;
+            }
+        });
+
+        if (!allFilled) {
+            alert('Please fill in all prediction and reference fields.');
+            event.preventDefault();
+            return false;
+        }
+        document.getElementById('pairForm').submit();
+    });
+    
+    
+
+    document.querySelectorAll('.input-field-editable').forEach(textarea => {
+            textarea.addEventListener('input', autoResize);
+            textarea.addEventListener('blur', renderUnicode);
+            autoResize.call(textarea);
+        });
+
+    </script>
+
+
+{% endblock %}
