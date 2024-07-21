@@ -17,12 +17,12 @@ InstructScore Visualizer
         </div>
 
         <form id="pairForm" method="post" action="{{ url_for('process_input_form') }}" class="input-form">
-            <div class="container">
+            <div class="manual-container">
                 <label for="prediction0" class="field-description-text">Prediction:</label>
                 <textarea id="prediction0" name="prediction0" class="input-field-editable" required></textarea> 
                 <label for="reference0" class="field-description-text">Reference:</label>
                 <textarea id="reference0" name="reference0" class="input-field-editable" required></textarea>
-                <button type="button" class="remove-button" style="display: none;" onclick="this.closest('.container').remove();
+                <button type="button" class="remove-button" style="display: none;" onclick="this.closest('.manual-container').remove();
             updateRemoveButtons();">Remove Pair</button>
             </div>
         </form>
@@ -56,7 +56,7 @@ InstructScore Visualizer
         });
 
         document.querySelector('.remove-button').addEventListener('click', function() {
-            this.closest('.container').remove();
+            this.closest('.manual-container').remove();
             updateRemoveButtons();
         });
 
@@ -86,7 +86,7 @@ InstructScore Visualizer
 
     function createContainer(newPairIndex) {
         const container = document.createElement('div');
-        container.classList.add('container');
+        container.classList.add('manual-container');
 
         const predictionLabel = createLabel('Prediction:', 'prediction' + (newPairIndex + 1));
         const predictionInput = createInput('text', 'prediction' + (newPairIndex + 1), 'prediction' + (newPairIndex + 1), true);

@@ -39,12 +39,6 @@ InstructScore Visualizer
             margin-top: 10px;
         }
 
-        .remove-button {
-            margin-left: 10px;
-            cursor: pointer;
-            color: red;
-        }
-
         .button-container {
             display: flex;
             flex-direction: column;
@@ -117,7 +111,7 @@ InstructScore Visualizer
                             <option value="runs.source_language">Source Language</option>
                             <option value="refs.lang">Target Language</option>
                         </select>
-                        <input type="text" name="search_texts[]" placeholder="Search...">
+                        <input type="text" name="search_texts[]" class="input-field" placeholder="Search...">
                     </div>
                 {% endif %}
                 <input type="hidden" name="current_page" id="search_page" value="{{ current_page }}">
@@ -321,6 +315,7 @@ InstructScore Visualizer
             newInput.type = 'text';
             newInput.name = 'search_texts[]';
             newInput.placeholder = 'Search...';
+            newInput.className = 'input-field';
 
             // Create remove button
             const removeButton = document.createElement('button');

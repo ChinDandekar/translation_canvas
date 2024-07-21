@@ -24,7 +24,7 @@
             background-repeat: no-repeat;
             background-attachment: fixed; */
             /* Center content vertically and horizontally */
-            background-color: #000;
+            background-color: #f4f4f9;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -99,10 +99,24 @@
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
         }
 
+        .manual-container {
+            text-align: center;
+            background-color: #fff;
+            color: #fff;
+            border-radius: 10px;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+            margin-top: 20px;
+            opacity: 0.95;
+            z-index: 1;
+            position: relative;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+
         /* Tooltip */
         .tooltip {
             position: fixed;
-            background-color: #3e88c5;
+            background-color: #3f51b5;
             color: #fff;
             border-radius: 10px;
             padding: 10px 20px;
@@ -135,7 +149,7 @@
         .input-field-editable {
             min-width: 100%;
             max-width: 100%;
-            width: 50vh;
+            width: 90vh;
             height: auto;
             overflow: hidden;
             resize: horizontal;
@@ -169,7 +183,7 @@
         /* Submit button */
         .submit-button {
             display: block;
-            background-color: #6480E5;
+            background-color: #3f51b5;
             color: white;
             padding: 10px 20px;
             text-align: center;
@@ -184,15 +198,15 @@
 
         /* Submit button hover */
         .submit-button:hover {
-            background-color: #6480E5;
+            background-color: #3f51b5;
             transform: scale(1.05);
         }
         
         /* Submit button */
         .remove-button {
-            background-color: #6480E5;
+            background-color: #3f51b5;
             color: white;
-            padding: 10px 20px;
+            padding: 5px 20px;
             text-align: center;
             text-decoration: none;
             font-size: 15px;
@@ -205,7 +219,7 @@
 
         /* Submit button hover */
         .remove-button:hover {
-            background-color: #6480E5;
+            background-color: #3f51b5;
             transform: scale(1.05);
         }
 
@@ -233,7 +247,7 @@
         }
 
         .red-text {
-            color: rgb(202, 1, 1);
+            color: rgb(142, 33, 35);
             cursor: pointer;
             
         }
@@ -261,7 +275,7 @@
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            background-color: #3e88c5;
+            background-color: #3f51b5;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -271,7 +285,7 @@
         /* Help tooltip */
         .help-tooltip {
             position: fixed;
-            background-color: #3e88c5;
+            background-color: #3f51b5;
             color: #fff;
             border-radius: 10px;
             padding: 10px 20px;
@@ -280,6 +294,10 @@
             
             opacity: 1;
             max-width: 35vw;
+        }
+
+        .help-tooltip-description {
+            color: #fff;
         }
 
         /* Question mark icon */
@@ -294,17 +312,19 @@
             justify-content: center;
             align-items: center;
             margin-top: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
         }
 
         .pagination-text {
-            color: #eee;
+            color: black;
             
         }
 
         /* Pagination button */
         .pagination-button {
             display: block;
-            background-color: #3e88c5;
+            background-color: #3f51b5;
             color: white;
             padding: 10px 20px;
             text-align: center;
@@ -321,7 +341,7 @@
 
         /* Pagination button hover */
         .pagination-button:hover {
-            background-color: #3e88c5;
+            background-color: #3f51b5;
             transform: scale(1.05);
         }
 
@@ -333,7 +353,7 @@
             width: 50px;
             height: 50px;
             border-radius: 50%;
-            background-color: #3e88c5;
+            background-color: #3f51b5;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -351,7 +371,7 @@
         /* Stats tooltip */
         .stats-tooltip {
             position: fixed;
-            background-color: #3e88c5;
+            background-color: #3f51b5;
             color: #fff;
             border-radius: 10px;
             padding: 10px 20px;
@@ -432,7 +452,7 @@
 
         .editor-buttons {
             display: flex;
-            justify-content: center;
+            justify-content: space-evenly;
             align-items: center;
             flex-direction: row;
         }
@@ -469,7 +489,7 @@
     <span class="help-tooltip">
         {% for key,value in help_text.items()%}
             {% if value == "None"%}
-                <span class="description">{{ key }}</span>
+                <span class="help-tooltip-description">{{ key }}</span>
             {% else %}
                 <span class={{ value }}>{{ key }}</span>
             {% endif %}
