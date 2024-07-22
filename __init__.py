@@ -56,8 +56,20 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
+        if not os.path.exists(os.path.join(path_to_file, ".env")) or not os.path.exists(os.path.join(path_to_file, "temporary.db")):
+            return render_template('setup.j2',  title='InstructScore Visualizer', help_text=help_text)
         help_text = help_text_json["index"]
-        return render_template('index.j2', title='InstructScore Visualizer', help_text=help_text)
+        
+        runs = read_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, num_predictions FROM runs ORDER BY se_score DESC;", logging=logging)
+        table_data = []
+        for run in runs:
+            table_data.append({'id': run[0], 'filename': run[1], 'source_lang': run[2], 'target_lang': run[3], 'status': run[4], 'se_score': round(float(run[5]), 3), 'num_predictions': run[6]})
+            if run[4] > 1:
+                table_data[-1]['status'] = 'Completed'
+            else:
+                table_data[-1]['status'] = f'{round(run[4]*100, 2)}%'
+                
+        return render_template('index.j2', help_text=help_text, table_data=table_data)
     
     @app.route('/process', methods=['POST'])
     def process_input_form():
@@ -150,7 +162,7 @@ def create_app(test_config=None):
             file_content = read_file_content(filename)
             return render_template('editor.j2', source_code=source_code, file_content=file_content, file_type=file_type, memorable_name=memorable_name, filename=filename, help_text=help_text)
         
-        if 'input_type' in request.form:
+        if 'input_type' in request.form or session['step1_data']:
             session['step1_data'] = request.form
             if request.form['input_type'] == 'file':
                 file_options = {
@@ -227,6 +239,10 @@ def create_app(test_config=None):
             str: The rendered HTML template.
         """
         # Get page number from the request, default to 1 if not provided
+        if 'ids' in request.form:
+            ids = request.form.get('ids', '[]')
+            files = tuple(json.loads(ids))
+        
         if 'files' in request.form:
             files = request.form.getlist('files')
             print(f"files fom next page: {files}, type: {type(files)}")
@@ -242,7 +258,7 @@ def create_app(test_config=None):
         search_query = None
         conjunctions = []
         clear_search = False
-        print(f'request.form: {request.form}')
+        print(f'request.form in visualize_instruct: {request.form}')
         if 'search_options[]' and 'search_texts[]' in request.form:
             search_options = request.form.getlist('search_options[]')
             search_texts = request.form.getlist('search_texts[]')

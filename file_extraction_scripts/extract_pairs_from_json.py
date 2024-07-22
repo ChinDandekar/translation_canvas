@@ -20,11 +20,9 @@ def extract_pairs_from_json(file):
     pairs = []                # Holds the data that has been read in
 
     with open(file) as f:
-        lines = f.readlines()   
-        for line in lines:
-            data = json.loads(line)     # Load the data from the line
-            pairs.append({"prediction": data["prediction"], "reference": data["reference"]})
-            # Add only prediction and reference data to the pairs list
+       data = json.load(f)
+       for pair in data:
+        pairs.append(pair)
     
     return pairs
 

@@ -84,234 +84,200 @@ InstructScore Visualizer
         border-color: #3f51b5;
     }
 
-    .results .result {
-        background-color: #f9f9f9;
-        border: 1px solid #e0e0e0;
-        border-radius: 4px;
-        padding: 20px;
-        margin-bottom: 10px;
-        transition: background-color 0.3s;
-    }
 
-    .results .result:hover {
-        background-color: #f1f1f1;
-    }
-
-    .results .result h2 {
-        font-size: 18px;
-        margin-bottom: 10px;
-    }
-
-    .results .result p {
-        margin-bottom: 10px;
-    }
-
-    .votes {
+    .button-container {
         display: flex;
-        justify-content: flex-end;
+        flex-direction: column;
+        position: absolute;
+        left: 0;
     }
 
-    .votes button {
-        background-color: transparent;
+    .move-up-button {
+        margin-bottom: 5px;
+        background: none;
         border: none;
-        font-size: 18px;
         cursor: pointer;
-        margin-left: 10px;
+        font-size: 25px;
     }
 
-        .button-container {
-            display: flex;
-            flex-direction: column;
-            position: absolute;
-            left: 0;
-        }
+    .move-down-button {
+        margin-top: 5px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 25px;
+    }
 
-        .move-up-button {
-            margin-bottom: 5px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 25px;
-        }
+    .prediction {
+    position: relative;
+    padding-left: 20px; /* Adjust this value if needed to prevent overlap with buttons */
+    padding-bottom: 50px;
+    }
 
-        .move-down-button {
-            margin-top: 5px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 25px;
-        }
+</style>
 
-        .prediction {
-        position: relative;
-        padding-left: 20px; /* Adjust this value if needed to prevent overlap with buttons */
-        padding-bottom: 50px;
-        }
-
-    </style>
-
-    <div class="content-holder">
-        <div class="container">
-             <form method="POST" action="{{ url_for('visualize_instruct') }}" class="input-form" id="search-form">
-                {% for i in range(search_options|length) %}
-                    <div class="search-container" id="form-row-{{ i+1 }}">
-                        <select name="search_options[]" onchange="handleOptionChange(this)">
-                            <option value="" disabled selected>Search Field</option>
-                            <option value="preds.source_text" {% if "preds.source_text" == search_options[i] %}selected{% endif %}>Prediction Text</option>
-                            <option value="refs.source_text" {% if "refs.source_text" == search_options[i] %}selected{% endif %}>Reference Text</option>
-                            <option value="preds_text.error_type" {% if "preds_text.error_type" == search_options[i] %}selected{% endif %}>Error Type</option>
-                            <option value="preds_text.error_scale" {% if "preds_text.error_scale" == search_options[i] %}selected{% endif %}>Error Scale</option>
-                            <option value="preds_text.error_explanation" {% if "preds_text.error_explanation" == search_options[i] %}selected{% endif %}>Error Explanation</option>
-                            <option value="runs.source_language" {% if "runs.source_language" == search_options[i] %}selected{% endif %}>Source Language</option>
-                            <option value="refs.lang" {% if "refs.lang" == search_options[i] %}selected{% endif %}>Target Language</option>
-                        </select>
-                        <input type="text" name="search_texts[]" placeholder="Search..." value="{{ search_texts[i] }}">
-                        {% if i > 0%}
-                            <button type="button" onclick="removeRow(this)">Remove</button>
-                        {% else %}
-                            <button type="submit">Search</button>
-                        {% endif %}
-                    </div>
-                    {% if i < conjunctions|length %}
-                        <div class = 'conjunction-container' id="conjunction-container-{{ i+1 }}">
-                            <select name="conjunctions[]" class="conjunction" onchange="addNewSearchRow(this)">
-                                <option value="" disabled>Add another search term:</option>
-                                <option value="AND" {% if conjunctions[i] == 'AND' %}selected{% endif %}>AND</option>
-                                <option value="OR" {% if conjunctions[i] == 'OR' %}selected{% endif %}>OR</option>
-                                <option value="NOT" {% if conjunctions[i] == 'NOT' %}selected{% endif %}>NOT</option>
-                            </select>
-                        </div>
+<div class="content-holder">
+    <div class="container">
+            <form method="POST" action="{{ url_for('visualize_instruct') }}" class="input-form" id="search-form">
+            {% for i in range(search_options|length) %}
+                <div class="search-container" id="form-row-{{ i+1 }}">
+                    <select name="search_options[]" onchange="handleOptionChange(this)">
+                        <option value="" disabled selected>Search Field</option>
+                        <option value="preds.source_text" {% if "preds.source_text" == search_options[i] %}selected{% endif %}>Prediction Text</option>
+                        <option value="refs.source_text" {% if "refs.source_text" == search_options[i] %}selected{% endif %}>Reference Text</option>
+                        <option value="preds_text.error_type" {% if "preds_text.error_type" == search_options[i] %}selected{% endif %}>Error Type</option>
+                        <option value="preds_text.error_scale" {% if "preds_text.error_scale" == search_options[i] %}selected{% endif %}>Error Scale</option>
+                        <option value="preds_text.error_explanation" {% if "preds_text.error_explanation" == search_options[i] %}selected{% endif %}>Error Explanation</option>
+                        <option value="runs.source_language" {% if "runs.source_language" == search_options[i] %}selected{% endif %}>Source Language</option>
+                        <option value="refs.lang" {% if "refs.lang" == search_options[i] %}selected{% endif %}>Target Language</option>
+                    </select>
+                    <input type="text" name="search_texts[]" placeholder="Search..." value="{{ search_texts[i] }}">
+                    {% if i > 0%}
+                        <button type="button" onclick="removeRow(this)">Remove</button>
+                    {% else %}
+                        <button type="submit">Search</button>
                     {% endif %}
-                {% endfor %}
-                {% if search_options|length == 0 %}
-                    <div class="search-container" id="form-row-1">
-                        <select name="search_options[]" onchange="handleOptionChange(this)">
-                            <option value="" disabled selected>Search Field</option>
-                            <option value="preds.source_text">Prediction Text</option>
-                            <option value="refs.source_text">Reference Text</option>
-                            <option value="preds_text.error_type">Error Type</option>
-                            <option value="preds_text.error_scale">Error Scale</option>
-                            <option value="preds_text.error_explanation">Error Explanation</option>
-                            <option value="runs.source_language">Source Language</option>
-                            <option value="refs.lang">Target Language</option>
+                </div>
+                {% if i < conjunctions|length %}
+                    <div class = 'conjunction-container' id="conjunction-container-{{ i+1 }}">
+                        <select name="conjunctions[]" class="conjunction" onchange="addNewSearchRow(this)">
+                            <option value="" disabled>Add another search term:</option>
+                            <option value="AND" {% if conjunctions[i] == 'AND' %}selected{% endif %}>AND</option>
+                            <option value="OR" {% if conjunctions[i] == 'OR' %}selected{% endif %}>OR</option>
+                            <option value="NOT" {% if conjunctions[i] == 'NOT' %}selected{% endif %}>NOT</option>
                         </select>
-                        <input type="text" name="search_texts[]" placeholder="Search...">
-                        <button type="submit" class="submit-button">Search</button>
                     </div>
                 {% endif %}
-                <input type="hidden" name="current_page" id="search_page" value="{{ current_page }}">
-                {% for file in files%}
-                    <input type="hidden" name="files" id="files_search" value={{ file }}>
-                {% endfor %}
-            </form>
-            
-            
-        </div>
-
-        {% for evaluation in input_data %}
-            {% set outerloop_index = loop.index%}
-            {% set is_not_first = False %}
-            <div class="container">
-                <div>
-                    {% for file, data in evaluation.runs.items() %}
-                        <div class="container-with-shadow prediction" id="prediction-{{ outerloop_index }}-{{ loop.index }}">
-                            {% if not loop.first %}
-                                <div class="button-container">
-                                    <button type="button" class="move-up-button" id="moveUp-{{ outerloop_index }}-{{ loop.index }}" onclick="moveUp('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬆</button>
-                                </div>
-                            {% endif %}
-
-                            <h1 class="description">{{ file }}, SEScore: {{ data.se_score }}</h1>
-                            <h1 class="pred-ref">Prediction</h1> <span style="display: hidden;" id="pred-id-{{ outerloop_index }}-{{ loop.index }}">{{data.pred_id}}</span>
-                            {% set is_not_first = True %}
-                            {% for key, value in data.prediction.items() %}
-                                {% if value == "None" %}
-                                    <span class="description">{{ key }}</span>
-                                {% elif value is mapping %}
-                                    {% if value.error_scale == "Minor" %}
-                                        <span class="orange-text">{{ key }}</span>
-                                    {% else %}
-                                        <span class="red-text">{{ key }}</span>
-                                    {% endif %}
-                                    <span class="tooltip">
-                                        Error Type: {{ value.error_type }}<br>
-                                        Major/minor: {{ value.error_scale }}<br>
-                                        Error explanation: {{ value.error_explanation }}
-                                    </span>
-                                {% else %}
-                                    {{ value }}
-                                {% endif %}
-                                {% if not loop.last %} {% endif %}
-                            {% endfor %}
-
-                            <div class="button-container">
-                                {% if not loop.last %}
-                                    <button type="button" class="move-down-button" id="moveDown-{{ outerloop_index }}-{{ loop.index }}" onclick="moveDown('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬇</button>
-                                {% endif %}
-                            </div>
-                        </div>
-                    {% endfor %}
+            {% endfor %}
+            {% if search_options|length == 0 %}
+                <div class="search-container" id="form-row-1">
+                    <select name="search_options[]" onchange="handleOptionChange(this)">
+                        <option value="" disabled selected>Search Field</option>
+                        <option value="preds.source_text">Prediction Text</option>
+                        <option value="refs.source_text">Reference Text</option>
+                        <option value="preds_text.error_type">Error Type</option>
+                        <option value="preds_text.error_scale">Error Scale</option>
+                        <option value="preds_text.error_explanation">Error Explanation</option>
+                        <option value="runs.source_language">Source Language</option>
+                        <option value="refs.lang">Target Language</option>
+                    </select>
+                    <input type="text" name="search_texts[]" placeholder="Search...">
+                    <button type="submit" class="submit-button">Search</button>
                 </div>
-
-                <div class="container-with-shadow">
-                    <h1 class="pred-ref">Reference:</h1>
-                    <span class="description">{{ evaluation.reference }}</span>
-                </div>
-            </div>
-        {% endfor %}
-
-
-        <div class="stats-circle">
-            <img src="{{ url_for('static', filename='stats.png') }}" class="stats-circle-image">
-        </div>
-        <span class="stats-tooltip">
-            <p>Total number of errors: {{ num_errors }}</p>
-            <p>Average number of errors per prediction: {{ avg_errors }}</p>
-            <p> Most frequent types of errors: </p>
-                {% for error_type in most_common_errors %}
-                    <p>{{ error_type[0] }}: {{ error_type[1] }} times</p>
-                {% endfor %}
-            <p>SEScore: {{ se_score }}</p>
-            
-        </span>
-
-        <!-- Pagination controls -->
-            <!-- Pagination controls -->
-        <div class = "pagination">
-                {% if current_page > 1 %}
-                    <div>
-                        <form id="hiddenForm_previous" method="POST" action="{{ url_for('visualize_instruct') }}">
-                            {% for file in files%}
-                                <input type="hidden" name="files" id="files_previous" value={{ file }}>
-                            {% endfor %}
-                            <input type="hidden" name="current_page" id="previous_page" value={{ current_page-1}}>
-                            <button type="submit" class="pagination-button">Previous</button>
-                        </form>
-                    </div>
-                {% endif %}
-            
-            <div class="pagination-text">
-                Page {{ current_page }} of {{ total_pages }}
-            </div>
-            
-            
-                {% if current_page < total_pages %}
-                    <!-- Next button with onclick event to update the form -->
-                    <div>
-                        <form id="hiddenForm_next" method="POST" action="{{ url_for('visualize_instruct') }}">
-                            {% for file in files%}
-                                <input type="hidden" name="files" id="files_next" value={{ file }}>
-                            {% endfor %}
-                            <input type="hidden" name="current_page" id="next_page" value={{ current_page+1}}>
-                            <button type="submit" class="pagination-button">Next</button>
-                        </form>
-                    </div>
-                {% endif %}
-           
-
-
-        </div>
+            {% endif %}
+            <input type="hidden" name="current_page" id="search_page" value="{{ current_page }}">
+            {% for file in files%}
+                <input type="hidden" name="files" id="files_search" value={{ file }}>
+            {% endfor %}
+        </form>
+        
+        
     </div>
+
+    {% for evaluation in input_data %}
+        {% set outerloop_index = loop.index%}
+        {% set is_not_first = False %}
+        <div class="container">
+            <div>
+                {% for file, data in evaluation.runs.items() %}
+                    <div class="container-with-shadow prediction" id="prediction-{{ outerloop_index }}-{{ loop.index }}">
+                        {% if not loop.first %}
+                            <div class="button-container">
+                                <button type="button" class="move-up-button" id="moveUp-{{ outerloop_index }}-{{ loop.index }}" onclick="moveUp('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬆</button>
+                            </div>
+                        {% endif %}
+
+                        <h1 class="description">{{ file }}, SEScore: {{ data.se_score }}</h1>
+                        <h1 class="pred-ref">Prediction</h1> <span style="display: hidden;" id="pred-id-{{ outerloop_index }}-{{ loop.index }}">{{data.pred_id}}</span>
+                        {% set is_not_first = True %}
+                        {% for key, value in data.prediction.items() %}
+                            {% if value == "None" %}
+                                <span class="description">{{ key }}</span>
+                            {% elif value is mapping %}
+                                {% if value.error_scale == "Minor" %}
+                                    <span class="orange-text">{{ key }}</span>
+                                {% else %}
+                                    <span class="red-text">{{ key }}</span>
+                                {% endif %}
+                                <span class="tooltip">
+                                    Error Type: {{ value.error_type }}<br>
+                                    Major/minor: {{ value.error_scale }}<br>
+                                    Error explanation: {{ value.error_explanation }}
+                                </span>
+                            {% else %}
+                                {{ value }}
+                            {% endif %}
+                            {% if not loop.last %} {% endif %}
+                        {% endfor %}
+
+                        <div class="button-container">
+                            {% if not loop.last %}
+                                <button type="button" class="move-down-button" id="moveDown-{{ outerloop_index }}-{{ loop.index }}" onclick="moveDown('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬇</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="container-with-shadow">
+                <h1 class="pred-ref">Reference:</h1>
+                <span class="description">{{ evaluation.reference }}</span>
+            </div>
+        </div>
+    {% endfor %}
+
+
+    <div class="stats-circle">
+        <img src="{{ url_for('static', filename='stats.png') }}" class="stats-circle-image">
+    </div>
+    <span class="stats-tooltip">
+        <p>Total number of errors: {{ num_errors }}</p>
+        <p>Average number of errors per prediction: {{ avg_errors }}</p>
+        <p> Most frequent types of errors: </p>
+            {% for error_type in most_common_errors %}
+                <p>{{ error_type[0] }}: {{ error_type[1] }} times</p>
+            {% endfor %}
+        <p>SEScore: {{ se_score }}</p>
+        
+    </span>
+
+    <!-- Pagination controls -->
+        <!-- Pagination controls -->
+    <div class = "pagination">
+            {% if current_page > 1 %}
+                <div>
+                    <form id="hiddenForm_previous" method="POST" action="{{ url_for('visualize_instruct') }}">
+                        {% for file in files%}
+                            <input type="hidden" name="files" id="files_previous" value={{ file }}>
+                        {% endfor %}
+                        <input type="hidden" name="current_page" id="previous_page" value={{ current_page-1}}>
+                        <button type="submit" class="pagination-button">Previous</button>
+                    </form>
+                </div>
+            {% endif %}
+        
+        <div class="pagination-text">
+            Page {{ current_page }} of {{ total_pages }}
+        </div>
+        
+        
+            {% if current_page < total_pages %}
+                <!-- Next button with onclick event to update the form -->
+                <div>
+                    <form id="hiddenForm_next" method="POST" action="{{ url_for('visualize_instruct') }}">
+                        {% for file in files%}
+                            <input type="hidden" name="files" id="files_next" value={{ file }}>
+                        {% endfor %}
+                        <input type="hidden" name="current_page" id="next_page" value={{ current_page+1}}>
+                        <button type="submit" class="pagination-button">Next</button>
+                    </form>
+                </div>
+            {% endif %}
+        
+
+
+    </div>
+</div>
 
  
 
@@ -426,7 +392,7 @@ InstructScore Visualizer
     function removeRow(button) {
         console.log(button);
         let conjunctionContainer = button.parentElement.nextElementSibling;
-        
+
         if (conjunctionContainer) {
             conjunctionContainer.remove();
         }
