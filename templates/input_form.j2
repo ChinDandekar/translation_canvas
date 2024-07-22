@@ -29,18 +29,18 @@ InstructScore Visualizer
 {% block content %}
     <div class="container">
         <form method="POST" action="{{ url_for('file_input') }}" class="input-form" id = "logForm" enctype="multipart/form-data">
-            <h3 class="description">Step 1</h3>
-            <label for = "memorable_name" class = "field-description-text">Give this run a memorable name:</label>
+            <h3 class="description">Submit a new run for evaluation</h3>
+            <label for = "memorable_name" class = "field-description-text">Give this run a name:</label>
             <input type="text" id="memorable_name" name="memorable_name" class="input-field" placeholder="model_name-variation-run">
             <label for = "input_type", id = "input_type_label" class = "field-description-text">Select the type of input:</label>
             <select id="input_type" name="input_type" class="input-field">
-                <option value="" disabled selected>Select Input Type</option>
+                <option value="" disabled selected>Input Type</option>
                 <option value="manual">Manual Input (Prediction-Reference Pairs will be entered manually)</option>
                 <option value="file">File Input (Prediction-Reference Pairs are in a file)</option>
             </select>
             <label for = "source_lang" class = "field-description-text">Source language:</label>
             <select id="source_lang" name="source_lang" class="input-field" onchange="updateTargetLanguages()">
-                <option value="" disabled selected>Select Source Language</option>
+                <option value="" disabled selected>Source Language</option>
                 {% for lang in source_languages %}
                     <option value="{{ lang }}">{{ language_names[lang] }}</option>
                 {% endfor %}
@@ -48,7 +48,7 @@ InstructScore Visualizer
 
             <label for = "target_lang" class = "field-description-text">Target language:</label>
             <select id="target_lang" name="target_lang" class="input-field">
-                <option value="" disabled selected>Select Target Language</option>
+                <option value="" disabled selected>Target Language</option>
                 <!-- Options will be dynamically populated by JavaScript -->
             </select>
             

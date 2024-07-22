@@ -21,10 +21,7 @@ InstructScore Visualizer
         Your request is being processed
     </div>
     <div class="description">
-        <p>A Slurm job has been started to evaluate your outputs. You should have received an email telling you that a job has been queued</p>
-        <p>You can also check in /mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{{ memorable_name }}/{{ memorable_name }}_{{ file_name }}_slurm_out.txt (and {{ memorable_name }}_{{ file_name }}_slurm_err.txt) for more details</p>
-        <p>Once the job is done, you will get an email. Come back to this site, click on the second link, and you will find the output json at /mnt/taurus/data1/chinmay/instructscore_visualizer/jobs/{{ memorable_name }}/{{ memorable_name }}_instrucscore.json</p>
-        <p>Click <a href="{{ url_for('index') }}">here</a> to go back to the main page</p>
+        You can check on the status of your request at the home page. Click here to go back to the <a href="{{ url_for('index') }}">home page</a>.
     </div>
 </div>
 {% endblock %}

@@ -11,8 +11,7 @@ InstructScore Visualizer
     <div class = 'content-holder'>
         <div class = "container">
             <div class="description">
-                Enter the model's prediction and reference pairs below. Click the add pair button to add another pair.
-                Click the remove pair button to remove the pair. Click the submit button to submit the pairs.
+                Enter the model's prediction and reference pairs below. 
             </div>
         </div>
 
@@ -130,7 +129,7 @@ InstructScore Visualizer
 
     document.getElementById('submitButton').addEventListener('click', function() {
         const pairForm = document.getElementById('pairForm');
-        const inputs = pairForm.querySelectorAll('input');
+        const inputs = pairForm.querySelectorAll('textarea');
         let allFilled = true;
         inputs.forEach(input => {
             if (input.value.trim() === '') {

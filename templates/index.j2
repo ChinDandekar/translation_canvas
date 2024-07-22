@@ -8,6 +8,7 @@ InstructScore Visualizer
 
 <style>
 
+
     .search-bar {
         margin-bottom: 10px;
     }
@@ -83,12 +84,13 @@ InstructScore Visualizer
             </tbody>
         </table>
     </div>
-    <form id="compareForm" action="{{ url_for('visualize_instruct') }}" method="POST">
-        <input type="hidden" name="ids" id="selectedIds">
-        <div class="submit-button-wrapper">
+    <div class="submit-button-wrapper">
+        <form id="compareForm" action="{{ url_for('visualize_instruct') }}" method="POST">
+            <input type="hidden" name="ids" id="selectedIds">
             <button type="submit" id="compareButton" class="submit-button" style="display:none;">Compare</button>
-        </div>
-    </form>
+        </form>
+        <button type="button" id="deleteButton" class="submit-button" style="background-color: #B53F51" onclick="deleteRuns()" >Delete</button>
+    </div>
 </div>
 
 <script>
@@ -118,7 +120,26 @@ InstructScore Visualizer
     function toggleButton() {
         const selectedRows = document.querySelectorAll('.select-row:checked');
         const compareButton = document.getElementById('compareButton');
+        const deleteButton = document.getElementById('deleteButton');
         compareButton.style.display = selectedRows.length > 0 ? 'block' : 'none';
+        deleteButton.style.display = selectedRows.length > 0 ? 'block' : 'none';
+    }
+
+    function deleteRuns() {
+        if (confirm("Are you sure you want to delete the selected runs?")) {
+            // Continue with the deletion logic
+            const selectedIds = Array.from(document.querySelectorAll('.select-row:checked'))
+                .map(checkbox => checkbox.closest('tr').dataset.id);
+            fetch('/delete_runs', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(selectedIds)
+            }).then(() => {
+                window.location.reload();
+            });
+        }
     }
 
     toggleButton();

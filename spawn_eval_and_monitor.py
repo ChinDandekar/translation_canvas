@@ -15,7 +15,7 @@ def spawn_eval(run_name, src_lang, tgt_lang):
     write_data(f"INSERT INTO runs (filename, source_lang, target_lang, in_progress, run_type) VALUES ('{run_name}', '{src_lang}', '{tgt_lang}', 0, 'instruct');")
     run_id = read_data("SELECT id FROM runs ORDER BY id DESC LIMIT 1")[0][0]
     
-    command = f"{sys.executable} {os.path.join(path_to_file, "eval.py")} --run_name {run_name} --run_id {run_id} --src_lang {src_lang} --tgt_lang {tgt_lang}"
+    command = f"{sys.executable} {os.path.join(path_to_file, "eval.py")} --run_id {run_id} --run_name {run_name} --src_lang {src_lang} --tgt_lang {tgt_lang}"
     # Execute the command
     process = subprocess.run(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     

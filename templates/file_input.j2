@@ -6,7 +6,7 @@ InstructScore Visualizer
 
 {% block content %}
     <div class="container">
-        <h2 class="description">Step 1</h2>
+        <h2 class="description">Extract prediction and reference from file</h2>
         <form method="POST" action="{{ url_for('file_input') }}" class="input-form" id = "logForm" enctype="multipart/form-data">
             <label for="file_options" class="field-description-text">Select the type of file you are uploading:</label>
             <select class="input-field" id="file_options" name="file_options">

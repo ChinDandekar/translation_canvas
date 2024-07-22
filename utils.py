@@ -1,9 +1,7 @@
-import json
 import os
-import string
 import re
 import subprocess
-import sys
+import psutil
 
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 
@@ -12,83 +10,6 @@ def spawn_independent_process(command):
     
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True, universal_newlines=True)
     return process.pid
-
-def get_completed_jobs():
-    """
-    Get the list of completed jobs.
-
-    Returns:
-        list: A list of completed jobs.
-    """
-    JOBS = os.path.join(path_to_file, 'jobs')
-    if not os.path.exists(JOBS):
-        os.mkdir(JOBS)
-        
-    jobs = os.listdir(os.path.join(path_to_file, "jobs"))
-    
-    completed_jobs = []
-    for job in jobs:
-        if os.path.exists(f"{path_to_file}/jobs/{job}/{job}_instructscore.json"):
-            completed_jobs.append(job)
-    
-    return completed_jobs
-    
-    
-def get_free_gpus():
-    command = ['gpustat', '--json']
-    result = subprocess.run(command, capture_output=True, text=True)
-    if result.returncode == 0:
-        gpu_info = json.loads(result.stdout)
-    else:
-        raise RuntimeError("Failed to get GPU information")
-    
-    free_indices = []
-    for gpu in gpu_info['gpus']:
-        if gpu['memory.used'] <= 100:
-            free_indices.append(gpu['index'])
-    return free_indices
-
-def create_and_exec_slurm(memorable_name, file_name):
-    """
-    Creates and executes a SLURM job script for running a Python script with specified parameters.
-
-    Args:
-        memorable_name (str): A unique name for the job.
-        file_name (str): The name of the input file.
-        email (str): The email address to receive notifications about the job.
-
-    Returns:
-        int: The exit status of the job execution.
-    """
-    free_gpus = get_free_gpus()
-    with open(f"{file_name}.sh", "w") as f:
-        f.write("#!/usr/bin/env bash\n\n\n" + 
-                "#SBATCH --nodes=1\n" +
-                "#SBATCH --ntasks=1\n" + 
-                "#SBATCH --cpus-per-task=32\n" +
-                "#SBATCH --mem=128GB\n" +
-                "#SBATCH --gpus=1\n" + 
-                "#SBATCH --partition=aries\n" + 
-                "#SBATCH --time=5-2:34:56\n" +
-                "#SBATCH --account=chinmay\n" +
-                "#SBATCH --mail-type=ALL\n" +
-                f"#SBATCH --mail-user=cdandekar@ucsb.edu\n" +
-                f"#SBATCH --output={file_name}_slurm_out.txt\n" + 
-                f"#SBATCH --error={file_name}_slurm_err.txt")
-        
-        f.write("\n\n")
-        visible_devices = ",".join([str(i) for i in free_gpus[:2]])
-        f.write(f"export CUDA_VISIBLE_DEVICES={visible_devices}\n")
-        f.write(f"cd {path_to_file}/..\n")
-        f.write(f'python {path_to_file}/eval.py --file_name "{file_name}" --memorable_name {memorable_name}')
-    pid = os.fork()
-    if pid==0:
-        os.chdir(f"{path_to_file}/jobs/{memorable_name}")
-        os.system(f"sbatch {file_name}.sh")
-        os._exit(0)
-    else:
-        os.waitpid(pid, 0)
-        return 0
     
 def split_sentence_with_queries(sentence, queries):
     """
@@ -111,47 +32,6 @@ def split_sentence_with_queries(sentence, queries):
 
     return phrases
 
-def instructscore_to_dict(memorable_name, start_index, items_per_page):
-    """
-    Converts the contents of an instructscore JSON file into a dictionary and performs pagination.
-
-    Args:
-        memorable_name (str): The name of the instructscore file.
-        start_index (int): The starting index for pagination.
-        items_per_page (int): The number of items per page for pagination.
-
-    Returns:
-        tuple: A tuple containing the following elements:
-            - render_data (list): The subset of data based on pagination.
-            - total_length (int): The total length of the data.
-            - num_errors (int): The number of errors in the data.
-            - most_common_errors (list): The most common errors in the data.
-            - avg_errors (float): The average number of errors per data item.
-    """
-    file_path = f"{path_to_file}/jobs/{memorable_name}/{memorable_name}_instructscore.json"
-    
-    with open(file_path) as f:
-        data = json.load(f)
-        
-        # Calculate the end index based on start index and items per page
-        end_index = start_index + items_per_page
-        
-        # Retrieve the subset of data based on pagination
-        if end_index > len(data)-1:
-            end_index = len(data)-1
-        
-        total_length = len(data)
-        print(total_length)
-        render_data = data[start_index:end_index]
-        
-        stats = data[-1]["stats"]
-        num_errors = stats["num_errors"]
-        most_common_errors = stats["most_common_errors"]
-        se_score = stats["se_score"]
-        avg_errors = num_errors/total_length       
-        
-    return render_data, total_length, num_errors, most_common_errors, avg_errors, se_score
-
 def read_file_content(file_path):
     with open(file_path, 'r') as file:
         return file.read(1000000)
@@ -159,3 +39,19 @@ def read_file_content(file_path):
 def write_file_content(file_path, content):
     with open(file_path, 'w') as file:
         return file.write(content)
+    
+def kill_processes_by_run_id(selected_run_id):
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        # print(f"Checking process {proc.info['pid']}")
+        try:
+            cmdline = proc.info['cmdline']
+            if cmdline:
+                # Convert the command line to a single string
+                cmdline_str = ' '.join(cmdline)
+                # Check if the command line contains the selected run_id
+                if f'eval.py --run_id {selected_run_id}' in cmdline_str:
+                    print(f"Killing process {proc.info['pid']} with command: {cmdline_str}")
+                    proc.terminate()  # or proc.kill() if you want to force kill
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
+            print(f"Error while trying to kill process {proc.info['pid']}, error: {e}")
+            pass

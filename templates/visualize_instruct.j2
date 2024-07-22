@@ -188,7 +188,7 @@ InstructScore Visualizer
                         {% endif %}
 
                         <h1 class="description">{{ file }}, SEScore: {{ data.se_score }}</h1>
-                        <h1 class="pred-ref">Prediction</h1> <span style="display: hidden;" id="pred-id-{{ outerloop_index }}-{{ loop.index }}">{{data.pred_id}}</span>
+                        <h1 class="pred-ref">Prediction:</h1> <span style="display: hidden;" id="pred-id-{{ outerloop_index }}-{{ loop.index }}">{{data.pred_id}}</span>
                         {% set is_not_first = True %}
                         {% for key, value in data.prediction.items() %}
                             {% if value == "None" %}

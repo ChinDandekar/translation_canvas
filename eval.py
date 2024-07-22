@@ -193,7 +193,7 @@ for i in tqdm(range(0, len(eval_dataset), batch_size)):
                 results = write_data(f"INSERT INTO preds_text (source_text, error_type, error_scale, error_explanation, pred_id) VALUES ('{pred_source_text}', '{error_type}', '{error_scale}', '{error_explanation}', {pred_id});", logging=logging)
             else:
                 results = write_data(f"INSERT INTO preds_text (source_text, pred_id) VALUES ('{pred_source_text}', {pred_id});", logging=logging)
-    results = write_data(f"UPDATE runs SET se_score = {se_score_total/(i+batch_size)}, num_predictions = {len(eval_dataset)}, in_progress = {(i+batch_size)/len(eval_dataset)} WHERE id = {run_id};", logging=logging)
+    results = write_data(f"UPDATE runs SET se_score = {se_score_total/(i+batch_size)}, num_predictions = {(i+batch_size)}, in_progress = {(i+batch_size)/len(eval_dataset)} WHERE id = {run_id};", logging=logging)
 
      
 

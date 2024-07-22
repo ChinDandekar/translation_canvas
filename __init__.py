@@ -3,16 +3,17 @@ import os
 import subprocess
 import sys
 import json
-from instructscore_visualizer.utils import create_and_exec_slurm, instructscore_to_dict, read_file_content, write_file_content, get_completed_jobs, spawn_independent_process
-from instructscore_visualizer.readwrite_database import read_data
+from instructscore_visualizer.utils import read_file_content, write_file_content, spawn_independent_process, kill_processes_by_run_id
+from instructscore_visualizer.readwrite_database import read_data, write_data
 
-from flask import Flask, render_template, request, session, jsonify
+from flask import Flask, render_template, request, session, jsonify, send_from_directory
 import secrets
 import rocher.flask
 import glob
 from werkzeug.utils import secure_filename
 
 from datetime import datetime
+import multiprocessing
 
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(path_to_file)
@@ -48,6 +49,11 @@ def create_app(test_config=None):
     results = read_data("SELECT id, filename FROM runs;")
     run_id_dict = {result[0]: result[1] for result in results}
 
+    @app.route('/favicon.ico')
+    def favicon():
+        return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    
     @app.route('/')
     def index():
         """
@@ -60,14 +66,17 @@ def create_app(test_config=None):
             return render_template('setup.j2',  title='InstructScore Visualizer', help_text=help_text)
         help_text = help_text_json["index"]
         
-        runs = read_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, num_predictions FROM runs ORDER BY se_score DESC;", logging=logging)
+        runs = write_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, num_predictions FROM runs ORDER BY se_score DESC;", logging=logging)
         table_data = []
         for run in runs:
-            table_data.append({'id': run[0], 'filename': run[1], 'source_lang': run[2], 'target_lang': run[3], 'status': run[4], 'se_score': round(float(run[5]), 3), 'num_predictions': run[6]})
-            if run[4] > 1:
-                table_data[-1]['status'] = 'Completed'
+            if run[4] > 0:
+                table_data.append({'id': run[0], 'filename': run[1], 'source_lang': run[2], 'target_lang': run[3], 'status': run[4], 'se_score': round(float(run[5]), 3), 'num_predictions': run[6]})
+                if run[4] > 1:
+                    table_data[-1]['status'] = 'Completed'
+                else:
+                    table_data[-1]['status'] = f'{round(run[4]*100, 2)}%'
             else:
-                table_data[-1]['status'] = f'{round(run[4]*100, 2)}%'
+                table_data.append({'id': run[0], 'filename': run[1], 'source_lang': run[2], 'target_lang': run[3], 'status': 'Starting', 'se_score': 'N/A', 'num_predictions': 'N/A'})
                 
         return render_template('index.j2', help_text=help_text, table_data=table_data)
     
@@ -243,7 +252,7 @@ def create_app(test_config=None):
             ids = request.form.get('ids', '[]')
             files = tuple(json.loads(ids))
         
-        if 'files' in request.form:
+        elif 'files' in request.form:
             files = request.form.getlist('files')
             print(f"files fom next page: {files}, type: {type(files)}")
             # files = json.loads(files[0])
@@ -426,5 +435,32 @@ def create_app(test_config=None):
     
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 400
+        
+    @app.route('/delete_runs', methods=['POST'])
+    def delete_runs():
+        try: 
+            if isinstance(request.data, bytes):
+                data_str = request.data.decode('utf-8')
+                data = json.loads(data_str)
+            else:
+                data = request.get_json()
+            run_ids = [int(run_id) for run_id in data]
+            
+            # start a new process to delete the runs because database connection is in read mode currently
+            process = multiprocessing.Process(target=_delete_runs_subprocess, args=(run_ids,))
+            process.start()
+            process.join()
+            
+            return jsonify({"status": "success", "message": f"Runs {run_ids} were deleted"}), 200
+            
+        except Exception as e:
+            print(f"Error: {e}")
+            return jsonify({"status": "error", "message": str(e)}), 400
+        
+    def _delete_runs_subprocess(run_ids):
+        for run_id in run_ids:
+            kill_processes_by_run_id(run_id)
+            print("Deleting run_id: ", run_id)
+            write_data(f"DELETE FROM preds_text WHERE pred_id IN (SELECT id FROM preds WHERE run_id = {run_id}); DELETE FROM preds WHERE run_id = {run_id}; DELETE FROM runs WHERE id = {run_id}; DELETE FROM refs WHERE id NOT IN (SELECT ref_id FROM preds);")
 
     return app
