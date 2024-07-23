@@ -3,10 +3,10 @@ import os
 import subprocess
 import sys
 import json
-from instructscore_visualizer.utils import read_file_content, write_file_content, spawn_independent_process, kill_processes_by_run_id
-from instructscore_visualizer.readwrite_database import read_data, write_data
+from utils import read_file_content, write_file_content, spawn_independent_process, kill_processes_by_run_id
+from readwrite_database import read_data, write_data
 
-from flask import Flask, render_template, request, session, jsonify, send_from_directory
+from flask import Flask, render_template, request, session, jsonify, send_from_directory, redirect, url_for
 import secrets
 import rocher.flask
 import glob
@@ -14,6 +14,7 @@ from werkzeug.utils import secure_filename
 
 from datetime import datetime
 import multiprocessing
+from dotenv import load_dotenv
 
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(path_to_file)
@@ -22,7 +23,7 @@ ITEMS_PER_PAGE = 10
 help_text_json = json.load(open(os.path.join(path_to_file, 'help_text.json')))
 UPLOAD_FOLDER = os.path.join(path_to_file, "uploaded_files")  # Specify your upload folder path
 SCRIPTS_BASEPATH = os.path.join(path_to_file, "file_extraction_scripts")  # Specify your flaskcode resource basepath
-extra_files = glob.glob(os.path.join(path_to_file, "file_extraction_scripts", "*.py")) 
+CUDA_DEVICES_FILE = os.path.join(path_to_file, "tmp", "cuda_devices.json")
 logging = False
 run_id_dict = {}
 ranking_log = os.path.join(path_to_file, "tmp", "ranking.log")
@@ -62,11 +63,12 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
+        help_text = help_text_json["index"]
         if not os.path.exists(os.path.join(path_to_file, ".env")) or not os.path.exists(os.path.join(path_to_file, "temporary.db")):
             return render_template('setup.j2',  title='InstructScore Visualizer', help_text=help_text)
-        help_text = help_text_json["index"]
         
         runs = write_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, num_predictions FROM runs ORDER BY se_score DESC;", logging=logging)
+        print(runs)
         table_data = []
         for run in runs:
             if run[4] > 0:
@@ -79,6 +81,31 @@ def create_app(test_config=None):
                 table_data.append({'id': run[0], 'filename': run[1], 'source_lang': run[2], 'target_lang': run[3], 'status': 'Starting', 'se_score': 'N/A', 'num_predictions': 'N/A'})
                 
         return render_template('index.j2', help_text=help_text, table_data=table_data)
+    
+    @app.route('/setup', methods=['GET', 'POST'])
+    def setup():
+        """
+        Setup the environment for the app.
+
+        Returns:
+            str: The rendered HTML template.
+        """
+        if request.method == 'GET':
+            help_text = help_text_json["get_system_info"]
+            
+            return render_template('get_system_info.j2', help_text=help_text)
+        if request.method == 'POST':
+            data = request.form
+            gpu_ids = data.get('gpu_ids', None)
+            cache_dir = data.get('cache_dir', None)
+            file = open(os.path.join(path_to_file, ".env"), 'w')
+            if gpu_ids:
+                file.write(f"AVAILABLE_GPU_IDS={gpu_ids}\n")
+            file.write(f"CACHE_DIR='{cache_dir}'\n")
+            file.close()
+            
+            help_text = help_text_json["index"]
+            return redirect(url_for('index'))
     
     @app.route('/process', methods=['POST'])
     def process_input_form():
@@ -130,12 +157,16 @@ def create_app(test_config=None):
         'es': 'Spanish',
         'ru': 'Russian',
         'de': 'German'
-    }
+        }
         
+        load_dotenv()
+        available_gpus = os.getenv('AVAILABLE_GPU_IDS')
+        available_gpus = available_gpus.split(',') if available_gpus else []
+        print(f"available_gpus: {available_gpus}")
         
         return render_template('input_form.j2', help_text=help_text, source_languages=source_languages, 
                                target_languages=target_languages, 
-                               language_names=language_names)
+                               language_names=language_names, available_gpus=available_gpus)
     
     @app.route('/input_form/step2', methods=['GET', 'POST'])
     def file_input():
@@ -146,6 +177,10 @@ def create_app(test_config=None):
             str: The rendered HTML template.
         """
         help_text = help_text_json["file_input"]
+        
+        if 'gpus' in request.form:
+            json.dump(request.form.getlist('gpus'), open(CUDA_DEVICES_FILE, 'w'), indent=4)
+        
         print(f"request.form: {request.form}, session: {session}")
         if 'file_options' in request.form:              # user has chosen a file type
             
@@ -218,12 +253,6 @@ def create_app(test_config=None):
             file_content = read_file_content(filename)
             help_text = help_text_json["preview_pairs_failure"]
             return render_template('preview_pairs_failure.j2', source_code=source_code, file_type=file_type, filename=filename, memorable_name=memorable_name, file_content=file_content, err=results.stderr, out = results.stdout, help_text=help_text)
-        # if os.path.exists(file_path):
-        #     pairs = json.load(open(file_path))
-        #     help_text = help_text_json["preview_pairs"]
-        #     return render_template('preview_pairs.j2', pairs=pairs, help_text=help_text, file=file)
-        # else:
-        #     return render_template('error.j2', error_message="File not found")
     
     
     @app.route('/instruct_in', methods=['GET'])

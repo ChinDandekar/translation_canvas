@@ -30,5 +30,8 @@
     },
     "basic_info": {
         "This is the basic information about the data.": "None"
+    },
+    "get_system_info": {
+        "Please provide the requested data about your system.": "None"
     }
 }

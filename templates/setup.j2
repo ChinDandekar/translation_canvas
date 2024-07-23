@@ -26,9 +26,6 @@ InstructScore Visualizer
 
 {% block content %}
 
-<style>
-
-</style>
 
 <div class = "container">
     <div class = "custom-text">
@@ -36,16 +33,10 @@ InstructScore Visualizer
     </div>
 
     <div class="description">
-        <p>This webapp expects the output of SimulEval (.log) and uses InstructScore to evaluate the output of a Streaming Speech Translation model</p>
+        <p>This integrated webapp helps you evaluate and compare your models predictions to understand what is happening with your models. Before we get started, let's do some setup</p>
     </div>
-
-    <div class="description">
-        <p>If you have a .log file that needs to be processed, click <a href="{{ url_for('basic_info') }}">here</a></p>
-        
-    </div>
-
-    <div class="description">  
-        <p>If you have a .json file that has already been processed, click <a href="{{ url_for('instruct_in') }}">here</a></p>
-    </div>
+    <form method="GET" action="{{ url_for('setup') }}" class="input-form">
+        <button id="addButton" class="submit-button">Setup</button>
+    </form>
 </div>
 {% endblock %}

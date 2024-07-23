@@ -29,6 +29,7 @@ from InstructScore_SEScore3.InstructScore import InstructScore
 
 
 JOBS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jobs")
+CUDA_PATH = os.path.join(os.path.dirname(JOBS_PATH), 'tmp', 'cuda_devices.json')
 
 def split_sentence_with_queries(sentence, queries):
     # Create a regular expression pattern to match any of the queries
@@ -129,7 +130,6 @@ def process_text(text, prediction, error_type_counter):
         
     return pred_render_data, num_errors, error_type_counter, se_score
 
-model_path = 'xu1998hz/InstructScore'
 
 run_name = args.run_name
 src_lang = args.src_lang
@@ -143,6 +143,9 @@ sys.stderr = open(err_file, 'w')
 batch_size = 20
 
 eval_dataset=json.load(open(os.path.join(JOBS_PATH, run_name, f"{run_name}_extracted.json"), 'r'))
+cuda_devices = json.load(open(CUDA_PATH, 'r'))
+os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(cuda_devices)
+print(f"Using GPUs: {','.join(cuda_devices)}")
 
 
 gt_scores, pred_scores = [], []
@@ -161,7 +164,7 @@ elif args.src_lang=='en':
     elif args.tgt_lang=='de':
         task_type = 'mt_en-de'
 
-scorer = InstructScore(task_type=task_type, batch_size=batch_size, cache_dir='/mnt/gemini/data1/chinmay/transformers_cache')
+scorer = InstructScore(task_type=task_type, batch_size=batch_size, cache_dir=os.environ['CACHE_DIR'])
 
 total_errors = 0
 error_type_counter = Counter()

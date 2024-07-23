@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}
+InstructScore Visualizer
+{% endblock %}
+
+{% block content %}
+
+<div class = "container">
+
+    <div class="description">
+        <p>
+            This system uses InstructScore, a model based on LLaMa, to evaluate your predictions. As a result, it takes at least 9GB per language direction to store. 
+        </p> 
+        <p> 
+            It is also recommended to use GPUs when running InstructScore. List out available GPUs that you can choose from later when evaluating your predictions.
+        </p> 
+        <p>
+            Please provide a path to a directory that has enough available storage, and the ids of available GPUs below.
+        </p>
+    </div>
+    <form method="POST" action="{{ url_for('setup') }}" class="input-form">
+        <label for="gpu_ids" class="field-description-text" >GPU IDs:</label>
+        <input type="text" name="gpu_ids" class="input-field" placeholder="Comma separated GPU IDs">
+        <label for="path" class="field-description-text">Path:</label>
+        <input type="text" name="cache_dir" class="input-field" placeholder="Path to directory with enough storage" required>
+        <button id="submitButton" class="submit-button">Submit</button>
+    </form>
+</div>
+
+{% endblock %}

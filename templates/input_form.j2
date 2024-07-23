@@ -27,11 +27,26 @@ InstructScore Visualizer
 {% endblock %}
 
 {% block content %}
+    <style>
+
+        .select2-container {
+            margin-bottom: 10px;
+            color: black;
+        }
+    </style>
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <div class="container">
         <form method="POST" action="{{ url_for('file_input') }}" class="input-form" id = "logForm" enctype="multipart/form-data">
             <h3 class="description">Submit a new run for evaluation</h3>
             <label for = "memorable_name" class = "field-description-text">Give this run a name:</label>
             <input type="text" id="memorable_name" name="memorable_name" class="input-field" placeholder="model_name-variation-run">
+            <label for = "gpus" class = "field-description-text">Select the GPUs to use:</label>
+            <select id="gpus" name="gpus" class="input-field" multiple>
+                {% for gpu in available_gpus %}
+                    <option value="{{ gpu }}">{{ gpu }}</option>
+                {% endfor %}
+            </select>
             <label for = "input_type", id = "input_type_label" class = "field-description-text">Select the type of input:</label>
             <select id="input_type" name="input_type" class="input-field">
                 <option value="" disabled selected>Input Type</option>
@@ -119,4 +134,11 @@ InstructScore Visualizer
 
         });
     </script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#gpus').select2();
+    });
+</script>
 {% endblock %}
