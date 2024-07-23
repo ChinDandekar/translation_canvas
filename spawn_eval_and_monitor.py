@@ -26,6 +26,8 @@ def spawn_eval(run_name, src_lang, tgt_lang):
     if status == 0:
         os.remove(os.path.join(job_path, f"{run_name}_err.txt"))
         os.remove(os.path.join(job_path, f"{run_name}_out.txt"))
+        os.remove(os.path.join(job_path, f"{run_name}_extracted.json"))
+        os.rmdir(job_path)
     else:
         write_data(f"UPDATE runs SET path_to_err = '{os.path.join(job_path, f"{run_name}_err.txt")}' WHERE id = '{run_id}'")
 

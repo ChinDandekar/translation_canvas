@@ -8,12 +8,12 @@ if not os.path.exists(os.path.join(path_to_file, "tmp")):
 lock_file_path = os.path.join(path_to_file, "tmp", "duckdb.lock")
 if not os.path.exists(lock_file_path):
     open(lock_file_path, 'w').close()
+    
+job_path = os.path.join(path_to_file, "jobs")
+if not os.path.exists(job_path):
+    os.makedirs(job_path)
 
-shared_mem_path = os.path.join(path_to_file, "tmp", "shared_mem_duckdb")
-if not os.path.exists(shared_mem_path):
-    open(shared_mem_path, 'w').close()
-
-con = duckdb.connect(database='temporary.db')
+con = duckdb.connect(database='tream.db')
 
 results = con.execute("CREATE SEQUENCE runs_id_sequence START 1;")
 results = con.execute("CREATE SEQUENCE refs_id_sequence START 1;")

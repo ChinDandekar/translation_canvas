@@ -73,7 +73,7 @@ def create_app(test_config=None):
         for run in runs:
             if run[4] > 0:
                 table_data.append({'id': run[0], 'filename': run[1], 'source_lang': run[2], 'target_lang': run[3], 'status': run[4], 'se_score': round(float(run[5]), 3), 'num_predictions': run[6]})
-                if run[4] > 1:
+                if run[4] >= 1:
                     table_data[-1]['status'] = 'Completed'
                 else:
                     table_data[-1]['status'] = f'{round(run[4]*100, 2)}%'
@@ -374,16 +374,7 @@ def create_app(test_config=None):
         print(f"empty_predictions_per_run: {empty_predictions_per_run}")
         for i, filename in empty_predictions_per_run:
             del input_data[i]['runs'][filename]
-        # clean out the input_data to remove empty runs
 
-        # SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page}
-        
-        # SELECT SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN (4,5,6) AND ref_id IN {ref_ids} ORDER BY ref_id, preds.se_score DESC
-        # SORT BY run_id, se_score DESC
-        
-        # predictions = {result[0]: {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None" for result in results}        #gluck figuring what this is lol
-        # print(input_data)            
-        json.dump(results, open('input_data.json', 'w'), indent=4)
         avg_errors = 1
         most_common_errors = {
             "error1": 3,
