@@ -4,7 +4,7 @@ import argparse
 import os
 from collections import Counter
 from dotenv import load_dotenv
-from readwrite_database import write_data, read_data
+from tream.readwrite_database import write_data, read_data
 
 import json
 import sys
@@ -143,9 +143,10 @@ sys.stderr = open(err_file, 'w')
 batch_size = 20
 
 eval_dataset=json.load(open(os.path.join(JOBS_PATH, run_name, f"{run_name}_extracted.json"), 'r'))
-cuda_devices = json.load(open(CUDA_PATH, 'r'))
-os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(cuda_devices)
-print(f"Using GPUs: {','.join(cuda_devices)}")
+if os.path.exists(CUDA_PATH):
+    cuda_devices = json.load(open(CUDA_PATH, 'r'))
+    os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(cuda_devices)
+    print(f"Using GPUs: {','.join(cuda_devices)}")
 
 
 gt_scores, pred_scores = [], []
