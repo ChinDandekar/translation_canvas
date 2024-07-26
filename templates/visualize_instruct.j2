@@ -114,6 +114,15 @@ InstructScore Visualizer
     padding-bottom: 50px;
     }
 
+    .score-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        text-align: right;
+        margin-bottom: 10px;
+        font-size: 15px;
+    }
+
 </style>
 
 <div class="content-holder">
@@ -186,8 +195,15 @@ InstructScore Visualizer
                                 <button type="button" class="move-up-button" id="moveUp-{{ outerloop_index }}-{{ loop.index }}" onclick="moveUp('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬆</button>
                             </div>
                         {% endif %}
-
-                        <h1 class="description">{{ file }}, SEScore: {{ data.se_score }}</h1>
+                        <div class = "score-container">
+                            {% if data.se_score %}
+                                <span class="description">SEScore: {{ data.se_score }}</span>
+                            {% endif %}
+                            {% if data.bleu_score %}
+                                <span class="description">BLEU: {{ data.bleu_score }}</span>
+                            {% endif %}
+                        </div>
+                        <h1 class="description">{{ file }}</h1>
                         <h1 class="pred-ref">Prediction:</h1> <span style="display: hidden;" id="pred-id-{{ outerloop_index }}-{{ loop.index }}">{{data.pred_id}}</span>
                         {% set is_not_first = True %}
                         {% for key, value in data.prediction.items() %}

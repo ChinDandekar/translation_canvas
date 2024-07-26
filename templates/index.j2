@@ -62,11 +62,13 @@ InstructScore Visualizer
                 <tr>
                     <th>Selected</th>
                     <th>Run</th>
-                    <th>Source Language</th>
-                    <th>Target Language</th>
+                    <th>Source Lang</th>
+                    <th>Target Lang</th>
                     <th>Status</th>
                     <th>SEScore</th>
-                    <th>Total Predictions Evaluated</th>
+                    <th>BLEU</th>
+                    <th>Eval Type</th>
+                    <th>Total Evals</th>
                 </tr>
             </thead>
             <tbody>
@@ -78,6 +80,8 @@ InstructScore Visualizer
                         <td>{{ run.target_lang }}</td>
                         <td>{{ run.status }}</td>
                         <td>{{ run.se_score }}</td>
+                        <td>{{ run.bleu_score }}</td>
+                        <td>{{ run.run_type }}</td>
                         <td>{{ run.num_predictions }}</td>
                     </tr>
                 {% endfor %}

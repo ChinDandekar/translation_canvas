@@ -6,13 +6,13 @@ from tream.readwrite_database import write_data
 
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 
+
 def _delete_runs_subprocess(run_ids):
     for run_id in run_ids:
         kill_processes_by_run_id(run_id)
         print("Deleting run_id: ", run_id)
         write_data(f"DELETE FROM preds_text WHERE pred_id IN (SELECT id FROM preds WHERE run_id = {run_id}); DELETE FROM preds WHERE run_id = {run_id}; DELETE FROM runs WHERE id = {run_id}; DELETE FROM refs WHERE id NOT IN (SELECT ref_id FROM preds);")
-
-
+    
 def spawn_independent_process(command):
     
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True, universal_newlines=True)

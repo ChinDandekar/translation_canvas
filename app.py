@@ -67,18 +67,24 @@ def create_app(test_config=None):
         if not os.path.exists(os.path.join(path_to_file, ".env")) or not os.path.exists(os.path.join(path_to_file, "tream.db")):
             return render_template('setup.j2',  title='InstructScore Visualizer', help_text=help_text)
         
-        runs = write_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, num_predictions FROM runs ORDER BY se_score DESC;", logging=logging)
+        runs = write_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type FROM runs ORDER BY se_score, bleu_score DESC;", logging=logging)
         print(runs)
         table_data = []
         for run in runs:
-            if run[4] > 0:
-                table_data.append({'id': run[0], 'filename': run[1], 'source_lang': run[2], 'target_lang': run[3], 'status': run[4], 'se_score': round(float(run[5]), 3), 'num_predictions': run[6]})
+            se_score = round(float(run[5]), 3) if run[5] else 'N/A'
+            bleu_score = round(float(run[6]), 3) if run[6] is not None else 'N/A'
+            status = None
+            run_type = run[8] if run[8] else 'no eval'
+            
+            if run[4] and run[4] > 0:
                 if run[4] >= 1:
-                    table_data[-1]['status'] = 'Completed'
+                    status = 'Completed'
                 else:
-                    table_data[-1]['status'] = f'{round(run[4]*100, 2)}%'
+                    status = f'{round(run[4]*100, 2)}%'
             else:
-                table_data.append({'id': run[0], 'filename': run[1], 'source_lang': run[2], 'target_lang': run[3], 'status': 'Starting', 'se_score': 'N/A', 'num_predictions': 'N/A'})
+                status = 'Starting'
+                    
+            table_data.append({'id': run[0], 'filename': run[1], 'source_lang': run[2], 'target_lang': run[3], 'status': status, 'se_score': se_score, 'bleu_score': bleu_score, 'num_predictions': run[7], 'run_type': run_type})
                 
         return render_template('index.j2', help_text=help_text, table_data=table_data)
     
@@ -119,6 +125,7 @@ def create_app(test_config=None):
         print(f"process_input_form request.form: {request.form}")
         tgt = session['step1_data']['target_lang']
         src = session['step1_data']['source_lang']
+        evaluation_type = session['step1_data']['evaluation_type']
         memorable_name = session['step1_data']['memorable_name']
         new_file = os.path.join(path_to_file, 'jobs', memorable_name, f'{memorable_name}_extracted.json')
         command = f"{sys.executable} {os.path.join(path_to_file, 'spawn_eval_and_monitor.py')} --run_name {memorable_name} --src_lang {src} --tgt_lang {tgt}"
@@ -133,6 +140,13 @@ def create_app(test_config=None):
                 os.mkdir(os.path.join(path_to_file, 'jobs', memorable_name))
                 
             json.dump(extracted_data, open(new_file, 'w'), indent=4)
+    
+        if evaluation_type:
+            if 'instructscore' in evaluation_type:
+                command += " --instructscore True"
+            if 'bleu' in evaluation_type:
+                command += " --bleu True"  
+        print(f"command: {command}")      
         spawn_independent_process(command)
         help_text = help_text_json["process_input_form"]
         return render_template('log_output.j2', memorable_name=memorable_name, file_name=new_file, help_text=help_text)
@@ -181,6 +195,8 @@ def create_app(test_config=None):
         if 'gpus' in request.form:
             json.dump(request.form.getlist('gpus'), open(CUDA_DEVICES_FILE, 'w'), indent=4)
         
+
+        
         print(f"request.form: {request.form}, session: {session}")
         if 'file_options' in request.form:              # user has chosen a file type
             
@@ -207,7 +223,13 @@ def create_app(test_config=None):
             return render_template('editor.j2', source_code=source_code, file_content=file_content, file_type=file_type, memorable_name=memorable_name, filename=filename, help_text=help_text)
         
         if 'input_type' in request.form or session['step1_data']:
-            session['step1_data'] = request.form
+            session['step1_data'] = request.form.to_dict()
+            evaluation_type = session['step1_data']['evaluation_type'] if 'step1_data' in session and 'evaluation_type' in session['step1_data'] else None
+            if 'evaluation_type' in request.form:
+                evaluation_type = request.form.getlist('evaluation_type')
+            session['step1_data']['evaluation_type'] = evaluation_type
+            print(f"current session in file_input right after input_form: {session}")
+            
             if request.form['input_type'] == 'file':
                 file_options = {
                     "JSON (.json)": "json",
@@ -353,7 +375,7 @@ def create_app(test_config=None):
         input_data = [{'reference': result[1], 'runs' : {}, 'ref_id': result[0]} for result in results]
         print(f"ref_ids: {ref_ids}")
         
-        results = read_data(f"SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename, ref_id, run_id, preds.id, preds.se_score  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN {run_ids} AND ref_id IN {ref_ids} ORDER BY ref_id, preds.se_score DESC")
+        results = read_data(f"SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename, ref_id, run_id, preds.id, preds.se_score, preds.bleu_score  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN {run_ids} AND ref_id IN {ref_ids} ORDER BY preds.se_score, preds.bleu_score, ref_id DESC")
         
         empty_predictions_per_run = []
         for i in range(len(input_data)):
@@ -368,8 +390,9 @@ def create_app(test_config=None):
                         input_data[i]['runs'][cur_filename]['prediction'][result[0]] =  {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None"
                         if not popped:
                             empty_predictions_per_run.pop()
-                            input_data[i]['runs'][cur_filename]['se_score'] = result[8]
                             input_data[i]['runs'][cur_filename]['pred_id'] = result[7]
+                            input_data[i]['runs'][cur_filename]['se_score'] = result[8]
+                            input_data[i]['runs'][cur_filename]['bleu_score'] = result[9]
                             popped = True
         print(f"empty_predictions_per_run: {empty_predictions_per_run}")
         for i, filename in empty_predictions_per_run:

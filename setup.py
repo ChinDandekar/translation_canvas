@@ -38,6 +38,7 @@ def setup_system():
                             exit_status INT,
                             path_to_err VARCHAR(255),
                             se_score FLOAT,
+                            bleu_score FLOAT,
                             num_predictions INT,
                             run_type VARCHAR(10));""")
 
@@ -51,6 +52,7 @@ def setup_system():
                             id INT DEFAULT nextval('preds_id_sequence') PRIMARY KEY,
                             source_text TEXT,
                             se_score FLOAT,
+                            bleu_score FLOAT,
                             num_errors INT,
                             ref_id INT,
                             run_id INT,

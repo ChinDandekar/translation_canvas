@@ -47,6 +47,11 @@ InstructScore Visualizer
                     <option value="{{ gpu }}">{{ gpu }}</option>
                 {% endfor %}
             </select>
+            <label for = "evaluation_type", id = "evaluation_type_label" class = "field-description-text">Select the type of evaluation:</label>
+            <select id="evaluation_type" name="evaluation_type" class="input-field" multiple>
+                <option value="bleu">BLEU</option>
+                <option value="instructscore">InstructScore</option>
+            </select>
             <label for = "input_type", id = "input_type_label" class = "field-description-text">Select the type of input:</label>
             <select id="input_type" name="input_type" class="input-field">
                 <option value="" disabled selected>Input Type</option>
@@ -139,6 +144,7 @@ InstructScore Visualizer
 <script>
     $(document).ready(function() {
         $('#gpus').select2();
+        $('#evaluation_type').select2();
     });
 </script>
 {% endblock %}
