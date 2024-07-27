@@ -74,7 +74,11 @@ InstructScore Visualizer
             <tbody>
                 {% for run in table_data %}
                     <tr data-id="{{ run.id }}">
-                        <td><input type="checkbox" class="select-row"></td>
+                        {% if run.status != 'Starting' %}
+                            <td><input type="checkbox" class="select-row"></td>
+                        {% else %}
+                            <td></td>
+                        {% endif %}
                         <td>{{ run.filename }}</td>
                         <td>{{ run.source_lang }}</td>
                         <td>{{ run.target_lang }}</td>

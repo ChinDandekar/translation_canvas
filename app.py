@@ -67,7 +67,7 @@ def create_app(test_config=None):
         if not os.path.exists(os.path.join(path_to_file, ".env")) or not os.path.exists(os.path.join(path_to_file, "tream.db")):
             return render_template('setup.j2',  title='InstructScore Visualizer', help_text=help_text)
         
-        runs = write_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type FROM runs ORDER BY target_lang, se_score, bleu_score DESC;", logging=logging)
+        runs = read_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type FROM runs ORDER BY target_lang, se_score, bleu_score DESC;", logging=logging)
         print(runs)
         table_data = []
         for run in runs:
@@ -382,43 +382,89 @@ def create_app(test_config=None):
         # first get all references used in the selected files
         print(f"search_query: {search_query}")
         
-        read_query = f"SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page};"
-        if search_query:
-            read_query = f"SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} AND preds.id IN ({search_query}) ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page};"
+        
+        read_query = (
+            f"""SELECT DISTINCT ref_id,
+                src_id,    
+                s.source_text,
+                r.source_text
+                FROM 
+                    preds p
+                LEFT JOIN 
+                    src s ON p.src_id = s.id
+                LEFT JOIN 
+                    refs r ON p.ref_id = r.id
+                WHERE 
+                    run_id IN {run_ids} 
+                ORDER BY
+                    ref_id, src_id
+                OFFSET 
+                        {start_index} 
+                LIMIT 
+                    {load_items_per_page};"""
+                            )
+        # if search_query:
+        #     read_query = f"SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} AND preds.id IN ({search_query}) ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page};"
             
-        total_items_query = f"SELECT COUNT(DISTINCT ref_id) FROM preds WHERE run_id IN {run_ids};" 
+        total_items_query = (
+                              f"SELECT COUNT( * ) FROM (SELECT DISTINCT ref_id, src_id FROM preds WHERE run_id IN {run_ids})  "
+                            )
         if search_query:
-            total_items_query = f"SELECT COUNT(DISTINCT ref_id) FROM preds WHERE run_id IN {run_ids} AND preds.id IN ({search_query});"
+            total_items_query = f"SELECT COUNT( * ) FROM (SELECT DISTINCT ref_id, src_id FROM preds WHERE run_id IN {run_ids}) AND preds.id IN ({search_query});"
         total_items = read_data(total_items_query, logging=logging)[0][0]
         print(total_items)
         
         results = read_data(read_query, logging=logging)
         ref_ids = tuple([result[0] for result in results])
-        input_data = [{'reference': result[1], 'runs' : {}, 'ref_id': result[0]} for result in results]
+        src_ids = tuple([result[1] for result in results])
+        
+        ref_ids_sql = f"({','.join([str(ref_id) for ref_id in ref_ids if ref_id])})"
+        src_ids_sql = f"({','.join([str(src_id) for src_id in src_ids if src_id])})"
+        input_data = {(result[0], result[1]): {'reference': result[3], 'runs' : {}, "source": result[2]} for result in results}       # use ref_id and src_id as a unique id for each instance
         print(f"ref_ids: {ref_ids}")
-        
-        results = read_data(f"SELECT preds_text.source_text, error_type, error_scale, error_explanation, filename, ref_id, run_id, preds.id, preds.se_score, preds.bleu_score  FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) JOIN runs ON (preds.run_id = runs.id) WHERE run_id IN {run_ids} AND ref_id IN {ref_ids} ORDER BY preds.se_score, preds.bleu_score, ref_id DESC")
-        
-        empty_predictions_per_run = []
-        for i in range(len(input_data)):
-            for run_id in run_ids:
-                # print(f'cur run_id: {run_id}, dict: {run_id_dict}')
-                cur_filename = get_filename(run_id)
-                input_data[i]['runs'][cur_filename] = {'prediction': {}}
-                empty_predictions_per_run.append((i, cur_filename))
-                popped = False
-                for result in results:
-                    if result[5] == input_data[i]['ref_id'] and cur_filename == result[4]:
-                        input_data[i]['runs'][cur_filename]['prediction'][result[0]] =  {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None"
-                        if not popped:
-                            empty_predictions_per_run.pop()
-                            input_data[i]['runs'][cur_filename]['pred_id'] = result[7]
-                            input_data[i]['runs'][cur_filename]['se_score'] = result[8]
-                            input_data[i]['runs'][cur_filename]['bleu_score'] = result[9]
-                            popped = True
-        print(f"empty_predictions_per_run: {empty_predictions_per_run}")
-        for i, filename in empty_predictions_per_run:
-            del input_data[i]['runs'][filename]
+        print(f"src_ids: {src_ids}")
+        print(f"run_ids: {run_ids}")
+        read_query = (
+                f"""SELECT preds_text.source_text, 
+                            preds_text.error_type, 
+                            preds_text.error_scale, 
+                            preds_text.error_explanation, 
+                            runs.filename, 
+                            preds.ref_id, 
+                            preds.id, 
+                            preds.se_score, 
+                            preds.bleu_score,
+                            preds.src_id,
+                            FROM preds 
+                            JOIN preds_text 
+                            ON (preds_text.pred_id = preds.id) 
+                            JOIN runs
+                            ON (runs.id = preds.run_id)
+                            WHERE run_id IN {run_ids} 
+                            """
+                )
+        if len(ref_ids_sql) > 2 and len(src_ids_sql) > 2:
+            read_query += f"AND (preds.ref_id IN {ref_ids_sql} OR preds.src_id IN {src_ids_sql}) "
+        elif len(ref_ids_sql) > 2:
+            read_query += f"AND preds.ref_id IN {ref_ids_sql} "
+        else:
+            read_query += f"AND preds.src_id IN {src_ids_sql} "
+        read_query += f"ORDER BY preds.ref_id, preds.src_id;"
+        print(f"read_query: {read_query}")
+        results = read_data(read_query, logging=logging)
+            
+        for result in results:          
+            cur_filename = result[4]
+            key = (result[5], result[9])
+            if key in input_data:
+                if cur_filename not in input_data[key]['runs']:
+                    input_data[key]['runs'][cur_filename] = {'prediction': {}}
+                    input_data[key]['runs'][cur_filename]['pred_id'] = result[6]
+                    input_data[key]['runs'][cur_filename]['se_score'] = result[7]
+                    input_data[key]['runs'][cur_filename]['bleu_score'] = result[8]
+                input_data[key]['runs'][cur_filename]['prediction'][result[0]] =  {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None"
+                
+                
 
         avg_errors = 1
         most_common_errors = {

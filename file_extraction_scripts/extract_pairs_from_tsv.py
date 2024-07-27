@@ -20,12 +20,14 @@ def extract_pairs_from_tsv(files: list[str]) -> list:
     """
     pairs = []                # Holds the data that has been read in
 
-    translations = pd.read_csv(files[0], sep='\t')
+    print(files)
+    translations = pd.read_csv(files, sep='\t')
     id_set = set()
     ref_set = set()
+    src_set = set()
     for index, row in translations.iterrows():
         if row['globalSegId'] not in id_set and row['system'] == 'GPT4-5shot':
-            pairs.append({'prediction': row['target'].replace("<v>", "").replace("</v>", "")})
+            pairs.append({'prediction': row['target'].replace("<v>", "").replace("</v>", ""), 'source': row['source']})
             id_set.add(row['globalSegId'])
             # Add only prediction and reference data to the pairs list
         if row['globalSegId'] not in ref_set and row['system'] == 'refA':

@@ -23,10 +23,8 @@ def spawn_eval(run_name, src_lang, tgt_lang, instructscore, bleu, ref, src):
         run_type = "'inst+bleu'"
         
     if ref:
-        run_type = "'ref'"
         command += " --ref True"
     if src:
-        run_type = "'src'"
         command += " --src True"
     
     write_data(f"INSERT INTO runs (filename, source_lang, target_lang, in_progress, run_type) VALUES ('{run_name}', '{src_lang}', '{tgt_lang}', 0, {run_type});")

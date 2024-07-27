@@ -93,7 +93,7 @@ InstructScore Visualizer
     }
 
     .move-up-button {
-        margin-bottom: 5px;
+        margin-bottom: -45%;
         background: none;
         border: none;
         cursor: pointer;
@@ -101,7 +101,7 @@ InstructScore Visualizer
     }
 
     .move-down-button {
-        margin-top: 5px;
+        margin-top: -45%;
         background: none;
         border: none;
         cursor: pointer;
@@ -111,7 +111,6 @@ InstructScore Visualizer
     .prediction {
     position: relative;
     padding-left: 20px; /* Adjust this value if needed to prevent overlap with buttons */
-    padding-bottom: 50px;
     }
 
     .score-container {
@@ -121,6 +120,20 @@ InstructScore Visualizer
         text-align: right;
         margin-bottom: 10px;
         font-size: 15px;
+    }
+
+    .filename {
+        font-size: 20px;
+        font-weight: bold;
+        color: black;
+        margin: 0px;
+    }
+
+    .score {
+        font-size: 15px;
+        font-weight: italic;
+        color: black;
+        margin: 0px;
     }
 
 </style>
@@ -183,10 +196,16 @@ InstructScore Visualizer
         
     </div>
 
-    {% for evaluation in input_data %}
+    {% for key, evaluation in input_data.items() %}
         {% set outerloop_index = loop.index%}
         {% set is_not_first = False %}
         <div class="container">
+            {% if evaluation.source is not none %}
+                <div class="container-with-shadow">
+                    <h1 class="pred-ref">Source:</h1>
+                    <span class="description">{{ evaluation.source }}</span>
+                </div>
+            {% endif %}
             <div>
                 {% for file, data in evaluation.runs.items() %}
                     <div class="container-with-shadow prediction" id="prediction-{{ outerloop_index }}-{{ loop.index }}">
@@ -197,13 +216,10 @@ InstructScore Visualizer
                         {% endif %}
                         <div class = "score-container">
                             {% if data.se_score %}
-                                <span class="description">SEScore: {{ data.se_score }}</span>
-                            {% endif %}
-                            {% if data.bleu_score %}
-                                <span class="description">BLEU: {{ data.bleu_score }}</span>
+                                <span class="score">InstructScore: {{ data.se_score }}</span>
                             {% endif %}
                         </div>
-                        <h1 class="description">{{ file }}</h1>
+                        <h1 class="filename">{{ file }}</h1>
                         <h1 class="pred-ref">Prediction:</h1> <span style="display: hidden;" id="pred-id-{{ outerloop_index }}-{{ loop.index }}">{{data.pred_id}}</span>
                         {% set is_not_first = True %}
                         {% for key, value in data.prediction.items() %}
@@ -235,10 +251,12 @@ InstructScore Visualizer
                 {% endfor %}
             </div>
 
-            <div class="container-with-shadow">
-                <h1 class="pred-ref">Reference:</h1>
-                <span class="description">{{ evaluation.reference }}</span>
-            </div>
+            {% if evaluation.reference is not none %}
+                <div class="container-with-shadow">
+                    <h1 class="pred-ref">Reference:</h1>
+                    <span class="description">{{ evaluation.reference }}</span>
+                </div>
+            {% endif %}
         </div>
     {% endfor %}
 
