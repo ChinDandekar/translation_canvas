@@ -145,6 +145,7 @@ InstructScore Visualizer
                 <div class="search-container" id="form-row-{{ i+1 }}">
                     <select name="search_options[]" onchange="handleOptionChange(this)">
                         <option value="" disabled selected>Search Field</option>
+                        <option value="src.source_text" {% if "src.source_text" == search_options[i] %}selected{% endif %}>Source Text</option>
                         <option value="preds.source_text" {% if "preds.source_text" == search_options[i] %}selected{% endif %}>Prediction Text</option>
                         <option value="refs.source_text" {% if "refs.source_text" == search_options[i] %}selected{% endif %}>Reference Text</option>
                         <option value="preds_text.error_type" {% if "preds_text.error_type" == search_options[i] %}selected{% endif %}>Error Type</option>
@@ -175,6 +176,7 @@ InstructScore Visualizer
                 <div class="search-container" id="form-row-1">
                     <select name="search_options[]" onchange="handleOptionChange(this)">
                         <option value="" disabled selected>Search Field</option>
+                        <option value="src.source_text">Source Text</option>
                         <option value="preds.source_text">Prediction Text</option>
                         <option value="refs.source_text">Reference Text</option>
                         <option value="preds_text.error_type">Error Type</option>
@@ -327,6 +329,7 @@ InstructScore Visualizer
 
    <script>
          const searchOptionsAll = [
+            { value: 'src.source_text', text: 'Source Text' },
             { value: 'preds.source_text', text: 'Prediction Text' },
             { value: 'refs.source_text', text: 'Reference Text' },
             { value: 'preds_text.error_type', text: 'Error Type' },
@@ -623,6 +626,18 @@ InstructScore Visualizer
             })
             .catch(error => {
                 console.log("Failure :( : ", response);
+            });
+    }
+
+    function clearSearchCacheAndReload() {
+        fetch('/clear_search_cache', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(() => {
+                window.location.reload();
             });
     }
 

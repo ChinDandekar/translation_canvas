@@ -342,7 +342,6 @@ def create_app(test_config=None):
         search_texts = []
         search_query = None
         conjunctions = []
-        clear_search = False
         print(f'request.form in visualize_instruct: {request.form}')
         if 'search_options[]' and 'search_texts[]' in request.form:
             search_options = request.form.getlist('search_options[]')
@@ -354,7 +353,7 @@ def create_app(test_config=None):
             print(f"search_text: {search_texts}")
             print(f"conjunctions: {conjunctions}")
         
-        if 'search_query' in session and session['search_query'] and not search_query and not clear_search:
+        if 'search_query' in session and session['search_query'] and not search_query:
             search_query = session['search_query']
             search_options = session['search_options']
             search_texts = session['search_texts']
@@ -528,7 +527,9 @@ def create_app(test_config=None):
         if 'runs.filename' in search_options:
             search_query += " JOIN runs ON (preds.run_id = runs.id)"
         if 'refs.source_text' in search_options or 'refs.lang' in search_options:
-            search_query += " JOIN refs ON (refs.id = preds.ref_id)"
+            search_query += " LEFT JOIN refs ON (refs.id = preds.ref_id)"
+        if 'src.source_text' in search_options or 'src.lang' in search_options:
+            search_query += " LEFT JOIN src ON (src.id = preds.src_id)"
             
         
         is_last_conjunctor_not = False    
@@ -628,7 +629,20 @@ def create_app(test_config=None):
         except Exception as e:
             print(f"Error: {e}")
             return jsonify({"status": "error", "message": str(e)}), 400
-        
+    
+    @app.route('/clear_search_cache', methods=['POST'])
+    def clear_search_cache():
+        print(f"session before clearing: {session}")
+        if 'search_options' in session:
+            del session['search_options']
+        if 'search_texts' in session:
+            del session['search_texts']
+        if 'search_query' in session:
+            del session['search_query']
+        if 'conjunctions' in session:
+            del session['conjunctions']
+        print(f"session after clearing: {session}")
+        return jsonify({"status": "success", "message": "Search cache cleared"}), 200
 
 
     return app
