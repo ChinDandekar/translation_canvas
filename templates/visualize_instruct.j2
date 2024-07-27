@@ -226,10 +226,14 @@ InstructScore Visualizer
                             {% if value == "None" %}
                                 <span class="description">{{ key }}</span>
                             {% elif value is mapping %}
-                                {% if value.error_scale == "Minor" %}
+                                {% if value.color == "orange" %}
                                     <span class="orange-text">{{ key }}</span>
-                                {% else %}
+                                {% elif value.color == "blue" %}
+                                    <span class="blue-text">{{ key }}</span>
+                                {% elif value.color == "red" %}
                                     <span class="red-text">{{ key }}</span>
+                                {% else %}
+                                    <span class="description">{{ key }}</span>
                                 {% endif %}
                                 <span class="tooltip">
                                     Error Type: {{ value.error_type }}<br>

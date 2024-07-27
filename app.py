@@ -67,6 +67,9 @@ def create_app(test_config=None):
         if not os.path.exists(os.path.join(path_to_file, ".env")) or not os.path.exists(os.path.join(path_to_file, "tream.db")):
             return render_template('setup.j2',  title='InstructScore Visualizer', help_text=help_text)
         
+        
+        # clean out session
+        session.clear()
         runs = read_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type FROM runs ORDER BY target_lang, se_score, bleu_score DESC;", logging=logging)
         print(runs)
         table_data = []
@@ -361,6 +364,7 @@ def create_app(test_config=None):
         session['search_texts'] = search_texts
         session['conjunctions'] = conjunctions
         
+        
         print(f"session is {session}")
         input_data = []
         print(f"Selected files: {files}")
@@ -396,21 +400,24 @@ def create_app(test_config=None):
                     refs r ON p.ref_id = r.id
                 WHERE 
                     run_id IN {run_ids} 
-                ORDER BY
+               """
+                            )
+        if search_query:
+            read_query += f"AND p.id IN ({search_query}) "
+        
+        read_query += f"""
+             ORDER BY
                     ref_id, src_id
                 OFFSET 
                         {start_index} 
                 LIMIT 
-                    {load_items_per_page};"""
-                            )
-        # if search_query:
-        #     read_query = f"SELECT DISTINCT ref_id, refs.source_text FROM preds JOIN refs ON (refs.id = preds.ref_id) WHERE run_id IN {run_ids} AND preds.id IN ({search_query}) ORDER BY ref_id OFFSET {start_index} LIMIT {load_items_per_page};"
-            
+                    {load_items_per_page};
+            """
         total_items_query = (
                               f"SELECT COUNT( * ) FROM (SELECT DISTINCT ref_id, src_id FROM preds WHERE run_id IN {run_ids})  "
                             )
         if search_query:
-            total_items_query = f"SELECT COUNT( * ) FROM (SELECT DISTINCT ref_id, src_id FROM preds WHERE run_id IN {run_ids}) AND preds.id IN ({search_query});"
+            total_items_query = f"SELECT COUNT( * ) FROM (SELECT DISTINCT ref_id, src_id FROM preds WHERE run_id IN {run_ids} AND preds.id IN ({search_query}));"
         total_items = read_data(total_items_query, logging=logging)[0][0]
         print(total_items)
         
@@ -435,6 +442,7 @@ def create_app(test_config=None):
                             preds.se_score, 
                             preds.bleu_score,
                             preds.src_id,
+                            preds_text.id
                             FROM preds 
                             JOIN preds_text 
                             ON (preds_text.pred_id = preds.id) 
@@ -443,15 +451,29 @@ def create_app(test_config=None):
                             WHERE run_id IN {run_ids} 
                             """
                 )
+        
         if len(ref_ids_sql) > 2 and len(src_ids_sql) > 2:
             read_query += f"AND (preds.ref_id IN {ref_ids_sql} OR preds.src_id IN {src_ids_sql}) "
         elif len(ref_ids_sql) > 2:
             read_query += f"AND preds.ref_id IN {ref_ids_sql} "
-        else:
+        elif len(src_ids_sql) > 2:
             read_query += f"AND preds.src_id IN {src_ids_sql} "
+        else:
+            read_query += "AND 1=0 "
         read_query += f"ORDER BY preds.ref_id, preds.src_id;"
         print(f"read_query: {read_query}")
         results = read_data(read_query, logging=logging)
+        
+        does_search_have_error = False
+        for option in search_options:
+            if 'error' in option and not does_search_have_error:
+                pred_ids = tuple([result[6] for result in results])
+                preds_text_seach_query = construct_pred_text_query(search_options, search_texts, conjunctions, pred_ids)
+                print(f"this is preds_text_seach_query: {preds_text_seach_query}")
+                preds_text_search_results = read_data(preds_text_seach_query, logging=logging)
+                print(f"preds_text_search_results: {preds_text_search_results}")
+                pred_text_search_ids = tuple([pred_text[0] for pred_text in preds_text_search_results])
+                does_search_have_error = True
             
         for result in results:          
             cur_filename = result[4]
@@ -462,7 +484,10 @@ def create_app(test_config=None):
                     input_data[key]['runs'][cur_filename]['pred_id'] = result[6]
                     input_data[key]['runs'][cur_filename]['se_score'] = result[7]
                     input_data[key]['runs'][cur_filename]['bleu_score'] = result[8]
-                input_data[key]['runs'][cur_filename]['prediction'][result[0]] =  {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3]} if result[1] else "None"
+                input_data[key]['runs'][cur_filename]['prediction'][result[0]] =  {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3], "color": 'red' if result[2] == 'Major' else 'orange'} if result[1] else "None"
+                if does_search_have_error:
+                    if result[10] in pred_text_search_ids:
+                        input_data[key]['runs'][cur_filename]['prediction'][result[0]]['color'] = 'blue'
                 
                 
 
@@ -521,6 +546,39 @@ def create_app(test_config=None):
             else:
                 is_last_conjunctor_not = False
         return search_query
+    
+    def construct_pred_text_query(search_options, search_texts, conjunctions, pred_ids):
+        search_option_errors, search_query_errors, conjunction_errors = trim_search_query_for_error(search_options, search_texts, conjunctions)
+        
+        search_query = "SELECT DISTINCT preds_text.id FROM preds_text"
+        is_last_conjunctor_not = False    
+        for i, (search_option, search_text) in enumerate(zip(search_option_errors, search_query_errors)):
+            if i > 0:
+                if conjunction_errors[i-1] == 'NOT':
+                    search_query += f" AND preds_text.id NOT IN (SELECT preds_text.id FROM preds_text WHERE {search_option} LIKE '%{search_text}%')"
+                    is_last_conjunctor_not = True
+                else: 
+                    search_query += f" {conjunction_errors[i-1]}"
+            else:
+                search_query += " WHERE"
+            if not is_last_conjunctor_not:
+                search_query += get_search_query(search_option, search_text)
+            else:
+                is_last_conjunctor_not = False
+        
+        search_query += f" AND preds_text.pred_id IN {pred_ids};"
+        return search_query
+        
+    def trim_search_query_for_error(search_option, search_query, conjunctions):
+        search_option_errors = []
+        search_query_errors = []
+        conjunction_errors = []
+        for i, option in enumerate(search_option):
+            if 'error' in option:
+                search_option_errors.append(option)
+                search_query_errors.append(search_query[i])
+                conjunction_errors.append(conjunctions[i] if i < len(conjunctions) else 'AND')
+        return search_option_errors, search_query_errors, conjunction_errors
     
     def get_search_query(search_option, search_text):
         return f" {search_option} LIKE '%{search_text}%'"
