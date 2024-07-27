@@ -53,19 +53,6 @@ InstructScore Visualizer
         border-color: #3f51b5;
     }
 
-    .search-container button {
-        padding: 10px 20px;
-        background-color: #3f51b5;
-        color: white;
-        border: none;
-        border-radius: 0 4px 4px 0;
-        cursor: pointer;
-        transition: background-color 0.3s;
-    }
-
-    .search-container button:hover {
-        background-color: #303f9f;
-    }
 
     .conjunction-container select,
     .conjunction-container input {
@@ -142,6 +129,11 @@ InstructScore Visualizer
     <div class="container">
             <form method="POST" action="{{ url_for('visualize_instruct') }}" class="input-form" id="search-form">
             {% for i in range(search_options|length) %}
+                {% if loop.first %}
+                    <div class = "search-container" id="clearSearchContainer">
+                        <button type="button" class="remove-button" onclick="clearSearchCacheAndReload()">Clear Search</button>
+                    </div>
+                {% endif%}
                 <div class="search-container" id="form-row-{{ i+1 }}">
                     <select name="search_options[]" onchange="handleOptionChange(this)">
                         <option value="" disabled selected>Search Field</option>
@@ -156,9 +148,9 @@ InstructScore Visualizer
                     </select>
                     <input type="text" name="search_texts[]" placeholder="Search..." value="{{ search_texts[i] }}">
                     {% if i > 0%}
-                        <button type="button" onclick="removeRow(this)">Remove</button>
+                        <button type="button" class="remove-button" onclick="removeRow(this)">Remove</button>
                     {% else %}
-                        <button type="submit">Search</button>
+                        <button type="submit" class="submit-button">Search</button>
                     {% endif %}
                 </div>
                 {% if i < conjunctions|length %}
@@ -167,7 +159,7 @@ InstructScore Visualizer
                             <option value="" disabled>Add another search term:</option>
                             <option value="AND" {% if conjunctions[i] == 'AND' %}selected{% endif %}>AND</option>
                             <option value="OR" {% if conjunctions[i] == 'OR' %}selected{% endif %}>OR</option>
-                            <option value="NOT" {% if conjunctions[i] == 'NOT' %}selected{% endif %}>NOT</option>
+                            <option value="NOT" {% if conjunctions[i] == 'NOT' %}selected{% endif %}>AND NOT</option>
                         </select>
                     </div>
                 {% endif %}
@@ -353,7 +345,7 @@ InstructScore Visualizer
                     <option value="" disabled selected>Add another search term:</option>
                     <option value="AND">AND</option>
                     <option value="OR">OR</option>
-                    <option value="NOT">NOT</option>
+                    <option value="NOT">AND NOT</option>
                 `;
                 conjunctionSelect.onchange = function() {
                         if (!document.getElementById(`form-row-${parseInt(selectElement.parentElement.id.split('-')[2]) + 1}`)) {
@@ -418,6 +410,7 @@ InstructScore Visualizer
             const removeButton = document.createElement('button');
             removeButton.type = 'button';
             removeButton.innerText = 'Remove';
+            removeButton.className = 'remove-button';
             removeButton.onclick = function() {
                 removeRow(removeButton);
             };
@@ -630,15 +623,25 @@ InstructScore Visualizer
     }
 
     function clearSearchCacheAndReload() {
-        fetch('/clear_search_cache', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+        console.log("clearing search")
+        document.querySelectorAll('select[name="search_options[]"]').forEach(select => select.selectedIndex = 0);
+        document.querySelectorAll('input[name="search_texts[]"]').forEach(input => input.value = '');
+        document.querySelectorAll('select[name="conjunctions[]"]').forEach(select => select.selectedIndex = 0);
+        document.getElementById('search_page').value = 1;
+        fetch(
+            '/clear_search_cache',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
             }
-        })
-            .then(() => {
-                window.location.reload();
-            });
+        ).then(() => {
+            document.getElementById('search-form').submit();
+        });
+        // Optionally, reset the form to its initial state
+
     }
 
     </script>

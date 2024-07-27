@@ -464,15 +464,16 @@ def create_app(test_config=None):
         results = read_data(read_query, logging=logging)
         
         does_search_have_error = False
-        for option in search_options:
-            if 'error' in option and not does_search_have_error:
-                pred_ids = tuple([result[6] for result in results])
-                preds_text_seach_query = construct_pred_text_query(search_options, search_texts, conjunctions, pred_ids)
-                print(f"this is preds_text_seach_query: {preds_text_seach_query}")
-                preds_text_search_results = read_data(preds_text_seach_query, logging=logging)
-                print(f"preds_text_search_results: {preds_text_search_results}")
-                pred_text_search_ids = tuple([pred_text[0] for pred_text in preds_text_search_results])
-                does_search_have_error = True
+        if len(results) > 0:
+            for option in search_options:
+                if 'error' in option and not does_search_have_error:
+                    pred_ids = tuple([result[6] for result in results])
+                    preds_text_seach_query = construct_pred_text_query(search_options, search_texts, conjunctions, pred_ids)
+                    print(f"this is preds_text_seach_query: {preds_text_seach_query}")
+                    preds_text_search_results = read_data(preds_text_seach_query, logging=logging)
+                    print(f"preds_text_search_results: {preds_text_search_results}")
+                    pred_text_search_ids = tuple([pred_text[0] for pred_text in preds_text_search_results])
+                    does_search_have_error = True
             
         for result in results:          
             cur_filename = result[4]
