@@ -7,7 +7,7 @@ import sys
 
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 
-def spawn_eval(run_name, src_lang, tgt_lang, instructscore, bleu):
+def spawn_eval(run_name, src_lang, tgt_lang, instructscore, bleu, ref, src):
     # Define the command to run
     job_path = os.path.join(path_to_file, "jobs", run_name)   
     
@@ -21,6 +21,13 @@ def spawn_eval(run_name, src_lang, tgt_lang, instructscore, bleu):
         command += " --bleu True"
     if instructscore and bleu:
         run_type = "'inst+bleu'"
+        
+    if ref:
+        run_type = "'ref'"
+        command += " --ref True"
+    if src:
+        run_type = "'src'"
+        command += " --src True"
     
     write_data(f"INSERT INTO runs (filename, source_lang, target_lang, in_progress, run_type) VALUES ('{run_name}', '{src_lang}', '{tgt_lang}', 0, {run_type});")
     run_id = read_data("SELECT id FROM runs ORDER BY id DESC LIMIT 1")[0][0]
@@ -41,8 +48,8 @@ def spawn_eval(run_name, src_lang, tgt_lang, instructscore, bleu):
     if status == 0:
         os.remove(os.path.join(job_path, f"{run_name}_err.txt"))
         os.remove(os.path.join(job_path, f"{run_name}_out.txt"))
-        os.remove(os.path.join(job_path, f"{run_name}_extracted.json"))
-        os.rmdir(job_path)
+        # os.remove(os.path.join(job_path, f"{run_name}_extracted.json"))
+        # os.rmdir(job_path)
     else:
         write_data(f"UPDATE runs SET path_to_err = '{os.path.join(job_path, f"{run_name}_err.txt")}' WHERE id = '{run_id}'")
 
@@ -54,8 +61,10 @@ if __name__ == "__main__":
     parser.add_argument('--tgt_lang', type=str, required=True)
     parser.add_argument('--instructscore', type=bool, default=False)
     parser.add_argument('--bleu', type=bool, default=False)
+    parser.add_argument('--ref', type=bool, default=False)
+    parser.add_argument('--src', type=bool, default=False)
     args = parser.parse_args()
     
-    print(f"Spawning evaluation for {args.run_name} with src_lang={args.src_lang}, tgt_lang={args.tgt_lang}, instructscore={args.instructscore}, bleu={args.bleu}")
+    print(f"Spawning evaluation for {args.run_name} with src_lang={args.src_lang}, tgt_lang={args.tgt_lang}, instructscore={args.instructscore}, bleu={args.bleu} and ref={args.ref}, src={args.src}")
 
-    spawn_eval(args.run_name, args.src_lang, args.tgt_lang, args.instructscore, args.bleu)
+    spawn_eval(args.run_name, args.src_lang, args.tgt_lang, args.instructscore, args.bleu, args.ref, args.src)

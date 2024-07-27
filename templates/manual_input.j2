@@ -11,23 +11,29 @@ InstructScore Visualizer
     <div class = 'content-holder'>
         <div class = "container">
             <div class="description">
-                Enter the model's prediction and reference pairs below. 
+                Enter the model's data below. 
             </div>
         </div>
 
         <form id="pairForm" method="post" action="{{ url_for('process_input_form') }}" class="input-form">
             <div class="manual-container">
+                {% if src == True %}
+                    <label for="source0" class="field-description-text">Source:</label>
+                    <textarea id="source0" name="source0" class="input-field-editable" required></textarea>
+                {% endif %}
                 <label for="prediction0" class="field-description-text">Prediction:</label>
                 <textarea id="prediction0" name="prediction0" class="input-field-editable" required></textarea> 
-                <label for="reference0" class="field-description-text">Reference:</label>
-                <textarea id="reference0" name="reference0" class="input-field-editable" required></textarea>
+                {% if ref == True %}
+                    <label for="reference0" class="field-description-text">Reference:</label>
+                    <textarea id="reference0" name="reference0" class="input-field-editable" required></textarea>
+                {% endif %}
                 <button type="button" class="remove-button" style="display: none;" onclick="this.closest('.manual-container').remove();
             updateRemoveButtons();">Remove Pair</button>
             </div>
         </form>
     
         <div class="editor-buttons">
-            <button type="button" id="addPairButton" class="submit-button">Add Pair</button>
+            <button type="button" id="addPairButton" class="submit-button">Add Data</button>
             <button type="submit" id="submitButton" class="submit-button">Submit</button>
         </div>
     </div>
@@ -86,17 +92,29 @@ InstructScore Visualizer
     function createContainer(newPairIndex) {
         const container = document.createElement('div');
         container.classList.add('manual-container');
+        
+        var src = "{{ src }}";
+        var ref = "{{ ref }}";
 
+        if(src == "True") {
+            const sourceLabel = createLabel('Source:', 'source' + (newPairIndex + 1));
+            const sourceInput = createInput('text', 'source' + (newPairIndex + 1), 'source' + (newPairIndex + 1), true);
+            container.appendChild(sourceLabel);
+            container.appendChild(sourceInput);
+        }
+        
         const predictionLabel = createLabel('Prediction:', 'prediction' + (newPairIndex + 1));
         const predictionInput = createInput('text', 'prediction' + (newPairIndex + 1), 'prediction' + (newPairIndex + 1), true);
-
-        const referenceLabel = createLabel('Reference:', 'reference' + (newPairIndex + 1));
-        const referenceInput = createInput('text', 'reference' + (newPairIndex + 1), 'reference' + (newPairIndex + 1), true);
-
         container.appendChild(predictionLabel);
         container.appendChild(predictionInput);
-        container.appendChild(referenceLabel);
-        container.appendChild(referenceInput);
+
+        
+        if (ref == "True") {
+            const referenceLabel = createLabel('Reference:', 'reference' + (newPairIndex + 1));
+            const referenceInput = createInput('text', 'reference' + (newPairIndex + 1), 'reference' + (newPairIndex + 1), true);
+            container.appendChild(referenceLabel);
+            container.appendChild(referenceInput);
+        }
 
         return container;
     }

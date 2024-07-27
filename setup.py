@@ -25,6 +25,7 @@ def setup_system():
 
     results = con.execute("CREATE SEQUENCE runs_id_sequence START 1;")
     results = con.execute("CREATE SEQUENCE refs_id_sequence START 1;")
+    results = con.execute("CREATE SEQUENCE src_id_sequence START 1;")
     results = con.execute("CREATE SEQUENCE preds_id_sequence START 1;")
     results = con.execute("CREATE SEQUENCE preds_text_id_sequence START 1;")
 
@@ -46,6 +47,11 @@ def setup_system():
                                 id INT DEFAULT nextval('refs_id_sequence') PRIMARY KEY, 
                                 source_text TEXT NOT NULL, 
                                 lang VARCHAR(2));""")
+    
+    results = con.execute("""CREATE TABLE IF NOT EXISTS src (
+                                id INT DEFAULT nextval('src_id_sequence') PRIMARY KEY, 
+                                source_text TEXT NOT NULL, 
+                                lang VARCHAR(2));""")
 
     results = con.execute("""
                         CREATE TABLE IF NOT EXISTS preds (
@@ -54,8 +60,10 @@ def setup_system():
                             se_score FLOAT,
                             bleu_score FLOAT,
                             num_errors INT,
+                            src_id INT,
                             ref_id INT,
                             run_id INT,
+                            FOREIGN KEY (src_id) REFERENCES src(id),
                             FOREIGN KEY (ref_id) REFERENCES refs(id),
                             FOREIGN KEY (run_id) REFERENCES runs(id));""")
 

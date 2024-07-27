@@ -4,23 +4,23 @@ import pandas as pd
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 
 
-def extract_pairs_from_tsv(file):
+def extract_pairs_from_tsv(files: list[str]) -> list:
     """
-    Extracts prediction-reference pairs from a .tsv file and creates a dictionairy containing those pairs
+    Extracts source-prediction-reference tuples (if available) from a .tsv file and creates a dictionairy containing those pairs
 
     Args:
-        file (str): The path to the log file.
+        files (list[str]): A list of file paths to the inputted tsv files.
 
     Returns:
         pairs (list): A list of dictionaries, each containing a reference and a prediction.
 
     Raises:
-        FileNotFoundError: If the specified log file does not exist.
+        FileNotFoundError: If the specified files does not exist.
 
     """
     pairs = []                # Holds the data that has been read in
 
-    translations = pd.read_csv(file, sep='\t')
+    translations = pd.read_csv(files[0], sep='\t')
     id_set = set()
     ref_set = set()
     for index, row in translations.iterrows():
@@ -38,14 +38,17 @@ def extract_pairs_from_tsv(file):
 This is what the expected output should look like:
 [
     {
+        source: "source1",
         prediction: "prediction1",
         reference: "reference1"
     },
     {
+        source: "source2",
         prediction: "prediction2",
         reference: "reference2"
     },
     {
+        source: "source3",
         prediction: "prediction3",
         reference: "reference3"
     },

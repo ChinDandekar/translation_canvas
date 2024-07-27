@@ -136,7 +136,7 @@ def setup_instructscore(src_lang, tgt_lang):
     scorer = InstructScore(task_type=task_type, batch_size=batch_size, cache_dir=os.environ['CACHE_DIR'])
     return scorer
 
-def evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, logging):
+def evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, logging, ref, src):
     batch_size = 20
     eval_dataset=json.load(open(os.path.join(JOBS_PATH, run_name, f"{run_name}_extracted.json"), 'r'))
 
@@ -160,13 +160,27 @@ def evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, logging)
         
         if instructscore:
             batch_outputs, scores_ls = scorer.score(ref_ls=eval_reference, out_ls=eval_prediction)
+            
         for j in range(len(eval_reference)):
             prediction = eval_dataset[i+j]['prediction'].replace("'", "''")
-            reference = eval_dataset[i+j]['reference'].replace("'", "''")
-            results = read_data(f"SELECT id FROM refs WHERE source_text = '{reference}';", logging=logging)
-            if results == []:
-                results = write_data(f"INSERT INTO refs (source_text, lang) VALUES ('{reference}', '{tgt_lang}'); SELECT id FROM refs ORDER BY id DESC LIMIT 1;", logging=logging)
-            ref_id = results[0][0]
+            
+            if ref:
+                reference = eval_dataset[i+j]['reference'].replace("'", "''")
+                results = read_data(f"SELECT id FROM refs WHERE source_text = '{reference}';", logging=logging)
+                if results == []:
+                    results = write_data(f"INSERT INTO refs (source_text, lang) VALUES ('{reference}', '{tgt_lang}'); SELECT id FROM refs ORDER BY id DESC LIMIT 1;", logging=logging)
+                ref_id = results[0][0]
+            else: 
+                ref_id = 'NULL'
+            
+            if src:
+                source = eval_dataset[i+j]['source'].replace("'", "''")
+                results = read_data(f"SELECT id FROM src WHERE source_text = '{source}';", logging=logging)
+                if results == []:
+                    results = write_data(f"INSERT INTO src (source_text, lang) VALUES ('{source}', '{src_lang}'); SELECT id FROM src ORDER BY id DESC LIMIT 1;", logging=logging)
+                src_id = results[0][0]
+            else:
+                src_id = 'NULL'
             pred_render_dict = {prediction: "None"}
             se_score = scores_ls[j] if instructscore else 'NULL'
             num_errors = 'NULL'
@@ -180,7 +194,7 @@ def evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, logging)
             
             if bleu:
                 bleu_score = round(sacrebleu.sentence_bleu(prediction, [reference]).score,2)
-            pred_id = write_data(f"INSERT INTO preds (se_score, bleu_score, source_text, num_errors, ref_id, run_id) VALUES ({se_score}, {bleu_score}, '{prediction}', {num_errors}, {ref_id}, {run_id}); SELECT id FROM preds ORDER BY id DESC LIMIT 1;", logging=logging)[0][0]
+            pred_id = write_data(f"INSERT INTO preds (se_score, bleu_score, source_text, num_errors, src_id, ref_id, run_id) VALUES ({se_score}, {bleu_score}, '{prediction}', {num_errors}, {src_id}, {ref_id}, {run_id}); SELECT id FROM preds ORDER BY id DESC LIMIT 1;", logging=logging)[0][0]
             
             for pred in pred_render_dict:
                 pred_source_text = pred.replace("'", "''")
@@ -206,6 +220,8 @@ if __name__ == "__main__":
     parser.add_argument('--run_id', type=int, default=0)
     parser.add_argument('--instructscore', type=bool, default=False)
     parser.add_argument('--bleu', type=bool, default=False)
+    parser.add_argument('--ref', type=bool, default=False)
+    parser.add_argument('--src', type=bool, default=False)
     args = parser.parse_args()
     
     load_dotenv()
@@ -218,15 +234,17 @@ if __name__ == "__main__":
     run_id = args.run_id
     instructscore = args.instructscore
     bleu = args.bleu
+    ref = args.ref
+    src = args.src
     
     out_file = os.path.join(JOBS_PATH, run_name, f"{run_name}_out.txt")
     err_file = os.path.join(JOBS_PATH, run_name, f"{run_name}_err.txt")
     sys.stdout = open(out_file, 'w')
     sys.stderr = open(err_file, 'w')
     
-    print(f"Running evaluation for {run_name} with src_lang={src_lang}, tgt_lang={tgt_lang}, run_id={run_id}, instructscore={args.instructscore}, bleu={args.bleu}")
+    print(f"Running evaluation for {run_name} with src_lang={src_lang}, tgt_lang={tgt_lang}, run_id={run_id}, instructscore={args.instructscore}, bleu={args.bleu}, ref={args.ref}, src={args.src}")
 
-    evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, logging)
+    evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, logging, ref, src)
     
 
         

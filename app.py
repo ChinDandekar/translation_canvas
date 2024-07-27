@@ -67,7 +67,7 @@ def create_app(test_config=None):
         if not os.path.exists(os.path.join(path_to_file, ".env")) or not os.path.exists(os.path.join(path_to_file, "tream.db")):
             return render_template('setup.j2',  title='InstructScore Visualizer', help_text=help_text)
         
-        runs = write_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type FROM runs ORDER BY se_score, bleu_score DESC;", logging=logging)
+        runs = write_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type FROM runs ORDER BY target_lang, se_score, bleu_score DESC;", logging=logging)
         print(runs)
         table_data = []
         for run in runs:
@@ -126,15 +126,20 @@ def create_app(test_config=None):
         tgt = session['step1_data']['target_lang']
         src = session['step1_data']['source_lang']
         evaluation_type = session['step1_data']['evaluation_type']
+        data_types = session['step1_data']['data_types']
         memorable_name = session['step1_data']['memorable_name']
         new_file = os.path.join(path_to_file, 'jobs', memorable_name, f'{memorable_name}_extracted.json')
         command = f"{sys.executable} {os.path.join(path_to_file, 'spawn_eval_and_monitor.py')} --run_name {memorable_name} --src_lang {src} --tgt_lang {tgt}"
-        if session['step1_data']['input_type'] != 'file':
+        if session['step1_data']['input_method'] != 'file':
             data_dict = request.form.to_dict()
             extracted_data = []
-            for i in range(len(data_dict)//2):
+            for i in range(len(data_dict)):
                 if data_dict.get(f'prediction{i}', -1) != -1:
-                    extracted_data.append({'prediction': data_dict[f'prediction{i}'], 'reference': data_dict[f'reference{i}']})
+                    extracted_data.append({'prediction': data_dict[f'prediction{i}']})
+                if data_dict.get(f'reference{i}', -1) != -1:
+                    extracted_data[i]['reference'] = data_dict[f'reference{i}']
+                if data_dict.get(f'source{i}', -1) != -1:
+                    extracted_data[i]['source'] = data_dict[f'source{i}']
             
             if not os.path.exists(os.path.join(path_to_file, 'jobs', memorable_name)):
                 os.mkdir(os.path.join(path_to_file, 'jobs', memorable_name))
@@ -146,6 +151,13 @@ def create_app(test_config=None):
                 command += " --instructscore True"
             if 'bleu' in evaluation_type:
                 command += " --bleu True"  
+        
+        if data_types == 'ref':
+            command += " --ref True"
+        elif data_types == 'src':
+            command += " --src True"
+        else:
+            command += " --ref True --src True"
         print(f"command: {command}")      
         spawn_independent_process(command)
         help_text = help_text_json["process_input_form"]
@@ -222,7 +234,7 @@ def create_app(test_config=None):
             file_content = read_file_content(filename)
             return render_template('editor.j2', source_code=source_code, file_content=file_content, file_type=file_type, memorable_name=memorable_name, filename=filename, help_text=help_text)
         
-        if 'input_type' in request.form or session['step1_data']:
+        if 'input_method' in request.form or session['step1_data']:
             session['step1_data'] = request.form.to_dict()
             evaluation_type = session['step1_data']['evaluation_type'] if 'step1_data' in session and 'evaluation_type' in session['step1_data'] else None
             if 'evaluation_type' in request.form:
@@ -230,18 +242,28 @@ def create_app(test_config=None):
             session['step1_data']['evaluation_type'] = evaluation_type
             print(f"current session in file_input right after input_form: {session}")
             
-            if request.form['input_type'] == 'file':
+            data_types = session['step1_data']['data_types'] if 'step1_data' in session and 'data_types' in session['step1_data'] else None
+            if 'data_types' in request.form:
+                data_types = request.form['data_types']
+                
+            src = False if data_types == 'ref' else True
+            ref = False if data_types == 'src' else True
+            print(f"src: {src}, ref: {ref}")
+                
+                
+            if request.form['input_method'] == 'file':
                 file_options = {
                     "JSON (.json)": "json",
                     "SimulEval output (.log)": "log",
                     "CSV (.csv)": "csv",
                     "TSV (.tsv)": "tsv",
                     "XML (.xml)": "xml",
-                    "None of the above ": "txt",
+                    "Text (.txt) ": "txt",
                     }
                 return render_template('file_input.j2', help_text=help_text, file_options=file_options) 
             else:
-                return render_template('manual_input.j2', help_text=help_text)
+            
+                return render_template('manual_input.j2', help_text=help_text, src=src, ref=ref)
     
     @app.route('/input_form/step3', methods=['POST'])
     def preview_pairs():

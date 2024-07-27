@@ -3,12 +3,12 @@ import os
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 
 # Please don't change the function signature
-def extract_pairs_from_log(file: str) -> list:
+def extract_pairs_from_log(files: list[str]) -> list:
     """
     Extracts prediction-reference pairs from a SimulEval log file and creates a dictionairy containing those pairs
 
     Args:
-        file (str): The path to the log file.
+        files (list[str]): A list of file paths to the inputted log files.
 
     Returns:
         pairs (list): A list of dictionaries, each containing a reference and a prediction.
@@ -19,7 +19,7 @@ def extract_pairs_from_log(file: str) -> list:
     """
     pairs = []                # Holds the data that has been read in
 
-    with open(file) as f:
+    with open(files[0]) as f:
         lines = f.readlines()   
         for line in lines:
             data = json.loads(line)     # Load the data from the line
