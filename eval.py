@@ -54,7 +54,6 @@ def process_text(text, prediction, error_type_counter):
 
     """
     # print(text)
-    print("process text called")
     text = text + '\n'
     num_pattern = r'Your Translation contains (\d+) errors:'
     num_errors = re.search(num_pattern, text)
@@ -108,10 +107,6 @@ def process_text(text, prediction, error_type_counter):
         if not query_match:
             pred_render_data[phrase] = "None"
     
-    print(f"\n\nReturning from process_text:")
-    print(f"pred_render_data: {pred_render_data}")
-    print(f"num_errors: {num_errors}")
-    print(f"error_type_counter: {error_type_counter}\n\n")    
     return pred_render_data, num_errors, error_type_counter
 
 def setup_instructscore(src_lang, tgt_lang):
@@ -164,7 +159,6 @@ def evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, is_comet
             print(f"Using GPUs: {','.join(cuda_devices)}")
         
     comet_scores = calculate_system_stats(eval_dataset, ref, src, bleu, is_comet, run_id)
-    print(f"COMET scores: {comet_scores}")
     
     if instructscore:
         scorer = setup_instructscore(src_lang, tgt_lang)
@@ -207,7 +201,6 @@ def evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, is_comet
             num_errors = 'NULL'
             if instructscore:
                 return_vals = process_text(batch_outputs[j], prediction, error_type_counter)
-                print(f"This is return vals: {return_vals}")
                 pred_render_dict, num_errors, error_type_counter = return_vals
                 total_errors += num_errors
                 se_score_total += scores_ls[j]

@@ -387,7 +387,7 @@ def create_app(test_config=None):
             error_type_df = read_data_df(query, logging=logging)
             error_type_df['Run'] = error_type_df['run_id'].apply(get_filename)  # Add the run filename directly to the DataFrame
 
-            query = construct_distribution_query('se_score', 'InstructScore', stats_dict['instruct'])
+            query = construct_distribution_query('se_score', 'InstructScore', stats_dict['instruct'], precision=0)
             instructscore_distribution_df = read_data_df(query, logging=logging)
             instructscore_distribution_df['Run'] = instructscore_distribution_df['run_id'].apply(get_filename)
             
@@ -403,7 +403,6 @@ def create_app(test_config=None):
             query = construct_distribution_query('comet_score', 'CometScore', stats_dict['comet'])
             comet_distribution_df = read_data_df(query, logging=logging)
             comet_distribution_df['Run'] = comet_distribution_df['run_id'].apply(get_filename)
-            print(f"created comet_distribution_df {comet_distribution_df}")
             # Calculate the bar width
             comet_distribution_graph = create_histogram(comet_distribution_df, xaxis_title='CometScore', yaxis_title='Count', title='COMET: Distribution of scores per instance', bar_width=None)
                 
@@ -532,7 +531,7 @@ def create_app(test_config=None):
         histogram = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
         return histogram
     
-    def construct_distribution_query(score, score_name, ids, bins=10.0):
+    def construct_distribution_query(score, score_name, ids, bins=10.0, precision=2):
         return f"""
             WITH MinMax AS (
                 SELECT 
@@ -574,7 +573,7 @@ def create_app(test_config=None):
             )
             SELECT 
                 run_id,
-                ROUND((range_start + range_end) / 2, 2) AS {score_name},
+                ROUND((range_start + range_end) / 2, {precision}) AS {score_name},
                 count AS Count
             FROM RangeCounts
             ORDER BY run_id, range_start;
@@ -616,6 +615,7 @@ def create_app(test_config=None):
         if 'search_options[]' and 'search_texts[]' in request.form:
             search_options = request.form.getlist('search_options[]')
             search_texts = request.form.getlist('search_texts[]')
+            search_texts = [text.replace("'", "''") for text in search_texts]
             conjunctions = request.form.getlist('conjunctions[]')
             if len(search_options) > 0 and len(search_texts) > 0:
                 search_query = construct_full_query(search_options, search_texts, conjunctions)
@@ -687,6 +687,7 @@ def create_app(test_config=None):
                             )
         if search_query:
             total_items_query = f"SELECT COUNT( * ) FROM (SELECT DISTINCT ref_id, src_id FROM preds WHERE run_id IN {run_ids} AND preds.id IN ({search_query}));"
+        print(search_query)
         total_items = read_data(total_items_query, logging=logging)[0][0]
         print(total_items)
         
