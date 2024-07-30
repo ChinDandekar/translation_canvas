@@ -50,6 +50,7 @@
         /* Content holder */
         .content-holder {
             height: 100vh;
+            margin-top: 20vh;
         }
 
         /* Description text */
@@ -73,6 +74,7 @@
         /* Container */
         .container {
             text-align: center;
+            flex-direction: row;
             background-color: #fff;
             color: #fff;
             border-radius: 10px;
@@ -91,8 +93,7 @@
             color: #fff;
             border-radius: 10px;
             padding: 30px 30px;
-            margin-bottom: 10px;
-            margin-top: 10px;
+            margin: 10px;
             opacity: 0.95;
             z-index: 1;
             position: relative;
@@ -520,6 +521,16 @@
             max-width: 30%;
             border-radius: 40%;
         }
+
+        .bar-chart {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -539,7 +550,7 @@
         {% block content %}
         {% endblock %}
 
-    <div class="help-circle">
+    <!-- <div class="help-circle">
         <span class="question-mark">?</span>
     </div>
     <span class="help-tooltip">
@@ -550,7 +561,7 @@
                 <span class={{ value }}>{{ key }}</span>
             {% endif %}
         {% endfor %}
-    </span>
+    </span> -->
 
 
 <script>
@@ -588,22 +599,6 @@
             });
         });
 
-        // JavaScript code to make stats-tooltips appear on hover
-        const stats_tooltips = document.querySelectorAll('.stats-tooltip');
-        const statsCircle = document.querySelector('.stats-circle');
-        stats_tooltips.forEach((stats_tooltip) => {
-            const parent = stats_tooltip.previousElementSibling;
-            parent.addEventListener('mouseover', (e) => {
-                stats_tooltip.style.display = 'block';
-                const tooltipWidth = stats_tooltip.offsetWidth;
-                const tooltipHeight = stats_tooltip.offsetHeight;
-                stats_tooltip.style.left = `${statsCircle.offsetWidth}px`;
-                stats_tooltip.style.top = `${statsCircle.offsetTop - tooltipHeight}px`;
-            });
-            parent.addEventListener('mouseout', () => {
-                stats_tooltip.style.display = 'none';
-            });
-        });
     });
 </script>
 

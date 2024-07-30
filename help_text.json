@@ -33,5 +33,8 @@
     },
     "get_system_info": {
         "Please provide the requested data about your system.": "None"
+    },
+    "dashboard": {
+        "Compare system level stats of selected runs.": "None"
     }
 }

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}
+InstructScore Visualizer
+{% endblock %}
+
+{% block content %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<style>
+</style>
+    <div class="content-holder">
+        <div class = "top-container">
+            {% if instructscore %}
+                <div class="container-with-shadow">
+                    <div id="error-type-graph"></div>
+                </div>
+            {% endif %}
+            <div class="container-with-shadow">
+                <div id="scores-radar-chart"></div>
+            </div>
+        </div>
+        {% if instructscore or comet %}
+            <div class = "contianer">   
+                <div class = "top-container">
+                {% if comet %}
+                    <div class="container-with-shadow" >
+                        <div id="comet-distribution-graph"></div>
+                    </div>
+                {% endif %}
+                {% if instructscore %}
+                    <div class="container-with-shadow">
+                        <div id="instructscore-distribution-graph"></div>
+                    </div>
+                {% endif %}
+                </div>
+            </div>
+        {% endif %}
+        <div class="submit-button-wrapper" style="justify-content: space-evenly">
+            <form id="compareForm" action="{{ url_for('visualize_instruct') }}" method="POST">
+                <button type="submit" id="compareButton" class="submit-button">Compare Instances</button>
+            </form>
+        </div>
+    </div>
+    
+<script>
+    {% if instructscore %}
+        var error_type_graph = {{ error_type_graph | safe }};
+        Plotly.newPlot('error-type-graph', error_type_graph.data, error_type_graph.layout);
+
+        var instructscore_distribution_graph = {{ instructscore_distribution_graph | safe }};
+        Plotly.newPlot('instructscore-distribution-graph', instructscore_distribution_graph.data, instructscore_distribution_graph.layout);
+    {% endif %}
+
+    {% if comet %}
+        var comet_distribution_graph = {{ comet_distribution_graph | safe }};
+        Plotly.newPlot('comet-distribution-graph', comet_distribution_graph.data, comet_distribution_graph.layout);
+    {% endif %}
+
+    var scores_radar_chart = {{ scores_radar_chart | safe }};
+    Plotly.newPlot('scores-radar-chart', scores_radar_chart.data, scores_radar_chart.layout);
+</script>
+{% endblock%}

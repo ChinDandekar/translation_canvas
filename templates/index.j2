@@ -93,9 +93,13 @@ InstructScore Visualizer
         </table>
     </div>
     <div class="submit-button-wrapper">
+        <form id="dashboardForm" action="{{ url_for('dashboard') }}" method="POST">
+            <input type="hidden" name="ids" id="selectedDashboardIds">
+            <button type="submit" id="dashboardButton" class="submit-button" style="display:none;">Compare Systems</button>
+        </form>
         <form id="compareForm" action="{{ url_for('visualize_instruct') }}" method="POST">
             <input type="hidden" name="ids" id="selectedIds">
-            <button type="submit" id="compareButton" class="submit-button" style="display:none;">Compare</button>
+            <button type="submit" id="compareButton" class="submit-button" style="display:none;">Compare Instances</button>
         </form>
         <button type="button" id="deleteButton" class="submit-button" style="background-color: #B53F51" onclick="deleteRuns()" >Delete</button>
     </div>
@@ -125,12 +129,20 @@ InstructScore Visualizer
         document.getElementById('selectedIds').value = JSON.stringify(selectedIds);
     });
 
+    document.getElementById('dashboardButton').addEventListener('click', function() {
+        const selectedIds = Array.from(document.querySelectorAll('.select-row:checked'))
+            .map(checkbox => checkbox.closest('tr').dataset.id);
+        document.getElementById('selectedDashboardIds').value = JSON.stringify(selectedIds);
+    });
+
     function toggleButton() {
         const selectedRows = document.querySelectorAll('.select-row:checked');
         const compareButton = document.getElementById('compareButton');
         const deleteButton = document.getElementById('deleteButton');
+        const dashboardButton = document.getElementById('dashboardButton');
         compareButton.style.display = selectedRows.length > 0 ? 'block' : 'none';
         deleteButton.style.display = selectedRows.length > 0 ? 'block' : 'none';
+        dashboardButton.style.display = selectedRows.length > 0 ? 'block' : 'none';
     }
 
     function deleteRuns() {

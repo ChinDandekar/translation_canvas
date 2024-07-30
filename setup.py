@@ -40,6 +40,7 @@ def setup_system():
                             path_to_err VARCHAR(255),
                             se_score FLOAT,
                             bleu_score FLOAT,
+                            comet_score FLOAT,
                             num_predictions INT,
                             run_type VARCHAR(10));""")
 
@@ -58,7 +59,7 @@ def setup_system():
                             id INT DEFAULT nextval('preds_id_sequence') PRIMARY KEY,
                             source_text TEXT,
                             se_score FLOAT,
-                            bleu_score FLOAT,
+                            comet_score FLOAT,
                             num_errors INT,
                             src_id INT,
                             ref_id INT,

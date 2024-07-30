@@ -6,6 +6,7 @@ from collections import Counter
 from dotenv import load_dotenv
 from tream.readwrite_database import write_data, read_data
 from InstructScore_SEScore3.InstructScore import InstructScore
+from comet import download_model, load_from_checkpoint
 import json
 import sys
 import sacrebleu
@@ -114,10 +115,6 @@ def process_text(text, prediction, error_type_counter):
     return pred_render_data, num_errors, error_type_counter
 
 def setup_instructscore(src_lang, tgt_lang):
-    if os.path.exists(CUDA_PATH):
-        cuda_devices = json.load(open(CUDA_PATH, 'r'))
-        os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(cuda_devices)
-        print(f"Using GPUs: {','.join(cuda_devices)}")
         
     batch_size = 20
 
@@ -136,32 +133,55 @@ def setup_instructscore(src_lang, tgt_lang):
     scorer = InstructScore(task_type=task_type, batch_size=batch_size, cache_dir=os.environ['CACHE_DIR'])
     return scorer
 
-def evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, logging, ref, src):
+def calculate_system_stats(dataset, ref, src, bleu, comet, run_id):
+    if bleu:
+        if ref:
+            references = [dataset[j]['reference'] for j in range(0, len(dataset))]
+            predictions = [dataset[j]['prediction'] for j in range(0, len(dataset))]
+            bleu_score = sacrebleu.corpus_bleu(predictions, [references])
+            write_data(f"UPDATE runs SET bleu_score = {bleu_score.score} WHERE id = {run_id};", logging=logging)
+            print(f"Set BLEU score of {run_id} to {bleu_score.score}")
+    
+    if comet:
+        if src and ref:
+            model_path = download_model("Unbabel/wmt22-comet-da", saving_directory=os.environ['CACHE_DIR'])
+            model = load_from_checkpoint(model_path)
+            data = [{"src": dataset[j]['source'], "mt": dataset[j]['prediction'], "ref": dataset[j]['reference']} for j in range(0, len(dataset))]
+            comet_score = model.predict(data)
+            write_data(f"UPDATE runs SET comet_score = {comet_score['system_score']} WHERE id = {run_id};", logging=logging)
+            print(f"Set COMET score of {run_id} to {comet_score['system_score']}")
+            return comet_score['scores']
+    return None
+
+def evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, is_comet, logging, ref, src):
     batch_size = 20
     eval_dataset=json.load(open(os.path.join(JOBS_PATH, run_name, f"{run_name}_extracted.json"), 'r'))
-
+    
+    if instructscore or is_comet:
+        if os.path.exists(CUDA_PATH):
+            cuda_devices = json.load(open(CUDA_PATH, 'r'))
+            os.environ['CUDA_VISIBLE_DEVICES'] = ','.join(cuda_devices)
+            print(f"Using GPUs: {','.join(cuda_devices)}")
+        
+    comet_scores = calculate_system_stats(eval_dataset, ref, src, bleu, is_comet, run_id)
+    print(f"COMET scores: {comet_scores}")
+    
     if instructscore:
         scorer = setup_instructscore(src_lang, tgt_lang)
         total_errors = 0
         error_type_counter = Counter()
     
     se_score_total = 0 if instructscore else 'NULL'
-    
-    if bleu:
-        eval_reference = [eval_dataset[j]['reference'] for j in range(0, len(eval_dataset))]
-        eval_prediction = [eval_dataset[j]['prediction'] for j in range(0, len(eval_dataset))]
-        bleu_score = sacrebleu.corpus_bleu(eval_prediction, [eval_reference])
-        write_data(f"UPDATE runs SET bleu_score = {bleu_score.score} WHERE id = {run_id};", logging=logging)
-        print(f"Set BLEU score of {run_id} to {bleu_score.score}")
         
     for i in tqdm(range(0, len(eval_dataset), batch_size)):
-        eval_reference = [eval_dataset[j]['reference'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
         eval_prediction = [eval_dataset[j]['prediction'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
         
         if instructscore:
+            eval_reference = [eval_dataset[j]['reference'] for j in range(i, min(i + batch_size, len(eval_dataset)))]
             batch_outputs, scores_ls = scorer.score(ref_ls=eval_reference, out_ls=eval_prediction)
             
-        for j in range(len(eval_reference)):
+            
+        for j in range(len(eval_prediction)):
             prediction = eval_dataset[i+j]['prediction'].replace("'", "''")
             
             if ref:
@@ -183,8 +203,8 @@ def evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, logging,
                 src_id = 'NULL'
             pred_render_dict = {prediction: "None"}
             se_score = scores_ls[j] if instructscore else 'NULL'
+            comet_score = round(comet_scores[j],2) if comet_scores else 'NULL'
             num_errors = 'NULL'
-            bleu_score = 'NULL'
             if instructscore:
                 return_vals = process_text(batch_outputs[j], prediction, error_type_counter)
                 print(f"This is return vals: {return_vals}")
@@ -192,9 +212,7 @@ def evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, logging,
                 total_errors += num_errors
                 se_score_total += scores_ls[j]
             
-            if bleu:
-                bleu_score = round(sacrebleu.sentence_bleu(prediction, [reference]).score,2)
-            pred_id = write_data(f"INSERT INTO preds (se_score, bleu_score, source_text, num_errors, src_id, ref_id, run_id) VALUES ({se_score}, {bleu_score}, '{prediction}', {num_errors}, {src_id}, {ref_id}, {run_id}); SELECT id FROM preds ORDER BY id DESC LIMIT 1;", logging=logging)[0][0]
+            pred_id = write_data(f"INSERT INTO preds (se_score, comet_score, source_text, num_errors, src_id, ref_id, run_id) VALUES ({se_score}, {comet_score}, '{prediction}', {num_errors}, {src_id}, {ref_id}, {run_id}); SELECT id FROM preds ORDER BY id DESC LIMIT 1;", logging=logging)[0][0]
             
             for pred in pred_render_dict:
                 pred_source_text = pred.replace("'", "''")
@@ -220,6 +238,7 @@ if __name__ == "__main__":
     parser.add_argument('--run_id', type=int, default=0)
     parser.add_argument('--instructscore', type=bool, default=False)
     parser.add_argument('--bleu', type=bool, default=False)
+    parser.add_argument('--comet', type=bool, default=False)
     parser.add_argument('--ref', type=bool, default=False)
     parser.add_argument('--src', type=bool, default=False)
     args = parser.parse_args()
@@ -234,6 +253,7 @@ if __name__ == "__main__":
     run_id = args.run_id
     instructscore = args.instructscore
     bleu = args.bleu
+    is_comet = args.comet
     ref = args.ref
     src = args.src
     
@@ -242,9 +262,9 @@ if __name__ == "__main__":
     sys.stdout = open(out_file, 'w')
     sys.stderr = open(err_file, 'w')
     
-    print(f"Running evaluation for {run_name} with src_lang={src_lang}, tgt_lang={tgt_lang}, run_id={run_id}, instructscore={args.instructscore}, bleu={args.bleu}, ref={args.ref}, src={args.src}")
+    print(f"Running evaluation for {run_name} with src_lang={src_lang}, tgt_lang={tgt_lang}, run_id={run_id}, instructscore={args.instructscore}, bleu={args.bleu}, comet={args.comet}, ref={args.ref}, src={args.src}")
 
-    evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, logging, ref, src)
+    evaluate(run_name, src_lang, tgt_lang, run_id, instructscore, bleu, is_comet, logging, ref, src)
     
 
         

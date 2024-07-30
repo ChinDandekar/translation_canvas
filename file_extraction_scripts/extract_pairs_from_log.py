@@ -19,7 +19,7 @@ def extract_pairs_from_log(files: list[str]) -> list:
     """
     pairs = []                # Holds the data that has been read in
 
-    with open(files[0]) as f:
+    with open(files) as f:
         lines = f.readlines()   
         for line in lines:
             data = json.loads(line)     # Load the data from the line

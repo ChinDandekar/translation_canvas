@@ -126,7 +126,15 @@ InstructScore Visualizer
 </style>
 
 <div class="content-holder">
-    <div class="container">
+    <div class="container" style="margin-top: 5vh">
+            <form method="POST" action="{{ url_for('dashboard')}}" class="input-form" id="goToDashboard">
+                <input type="hidden" name="current_page" id="search_page" value="{{ current_page }}">
+                {% for file in files%}
+                    <input type="hidden" name="files" id="files_search" value={{ file }}>
+                {% endfor %}
+                <button type="submit" class="submit-button">Compare System-Level Stats</button>
+            </form>
+
             <form method="POST" action="{{ url_for('visualize_instruct') }}" class="input-form" id="search-form">
             {% for i in range(search_options|length) %}
                 {% if loop.first %}
@@ -212,6 +220,9 @@ InstructScore Visualizer
                             {% if data.se_score %}
                                 <span class="score">InstructScore: {{ data.se_score }}</span>
                             {% endif %}
+                            {% if data.comet_score %}
+                                <span class="score">COMET: {{ data.comet_score }}</span>
+                            {% endif %}
                         </div>
                         <h1 class="filename">{{ file }}</h1>
                         <h1 class="pred-ref">Prediction:</h1> <span style="display: hidden;" id="pred-id-{{ outerloop_index }}-{{ loop.index }}">{{data.pred_id}}</span>
@@ -259,19 +270,7 @@ InstructScore Visualizer
     {% endfor %}
 
 
-    <div class="stats-circle">
-        <img src="{{ url_for('static', filename='stats.png') }}" class="stats-circle-image">
-    </div>
-    <span class="stats-tooltip">
-        <p>Total number of errors: {{ num_errors }}</p>
-        <p>Average number of errors per prediction: {{ avg_errors }}</p>
-        <p> Most frequent types of errors: </p>
-            {% for error_type in most_common_errors %}
-                <p>{{ error_type[0] }}: {{ error_type[1] }} times</p>
-            {% endfor %}
-        <p>SEScore: {{ se_score }}</p>
-        
-    </span>
+    
 
     <!-- Pagination controls -->
         <!-- Pagination controls -->

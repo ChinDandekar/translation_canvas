@@ -61,6 +61,29 @@ def read_data(query: str, logging=False) -> list:
         
     return result
 
+def read_data_df(query: str, logging=False) -> list:
+    rw_lock = fasteners.InterProcessReaderWriterLock(path_to_rwlock)
+    timer = 1
+    success = False
+    while not success:
+        try:
+            with rw_lock.read_lock():
+                if logging:
+                    log("reading data lock acquired for df")
+                conn = duckdb.connect(path_to_db, read_only=True)
+                result = conn.query(query).df()
+                conn.close()
+                success = True
+        except duckdb.IOException:
+            timer *= random.uniform(1, 2)       # exponential backoff
+            print(f"backing off for {timer} seconds")
+            time.sleep(timer)
+        
+    if logging:
+        log("reading data lock released for df")
+        
+    return result
+
 def log(message: str):
     with open(os.path.join(os.path.dirname(__file__), 'tmp', 'log.txt'), 'a') as log_file:
         now = datetime.now()

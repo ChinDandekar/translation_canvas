@@ -4,14 +4,17 @@ import subprocess
 import sys
 import json
 from tream.utils import read_file_content, write_file_content, spawn_independent_process, _delete_runs_subprocess
-from tream.readwrite_database import read_data, write_data
+from tream.readwrite_database import read_data, read_data_df
 
 from flask import Flask, render_template, request, session, jsonify, send_from_directory, redirect, url_for
 import secrets
 import rocher.flask
-import glob
 from werkzeug.utils import secure_filename
 
+import plotly, plotly.express as px
+import plotly.graph_objs as go
+import plotly.utils
+import pandas as pd
 from datetime import datetime
 import multiprocessing
 from dotenv import load_dotenv
@@ -70,7 +73,7 @@ def create_app(test_config=None):
         
         # clean out session
         session.clear()
-        runs = read_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type FROM runs ORDER BY target_lang, se_score, bleu_score DESC;", logging=logging)
+        runs = read_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type, exit_status FROM runs ORDER BY target_lang, se_score, bleu_score DESC;", logging=logging)
         print(runs)
         table_data = []
         for run in runs:
@@ -86,6 +89,9 @@ def create_app(test_config=None):
                     status = f'{round(run[4]*100, 2)}%'
             else:
                 status = 'Starting'
+            
+            if run[9] is not None and run[9] != 0:
+                status = f"Error with status {run[9]}"
                     
             table_data.append({'id': run[0], 'filename': run[1], 'source_lang': run[2], 'target_lang': run[3], 'status': status, 'se_score': se_score, 'bleu_score': bleu_score, 'num_predictions': run[7], 'run_type': run_type})
                 
@@ -154,6 +160,8 @@ def create_app(test_config=None):
                 command += " --instructscore True"
             if 'bleu' in evaluation_type:
                 command += " --bleu True"  
+            if 'comet' in evaluation_type:
+                command += " --comet True"
         
         if data_types == 'ref':
             command += " --ref True"
@@ -315,6 +323,263 @@ def create_app(test_config=None):
         help_text = help_text_json["instruct_in"]
         return render_template('instruct_in.j2', help_text=help_text, options=options)
     
+    
+    @app.route('/dashboard', methods=['GET', 'POST'])
+    def dashboard():
+        """
+        Render the dashboard.j2 template.
+
+        Returns:
+            str: The rendered HTML template.
+        """
+        help_text = help_text_json["dashboard"]
+        # collect counts of types of errors for each run
+        if 'ids' in request.form:
+            ids = request.form.get('ids', '[]')
+            ids = tuple(json.loads(ids))
+        elif 'files' in request.form:
+            ids = tuple(request.form.getlist('files'))
+        
+        stats_dict = {}
+        run_types = read_data(f"SELECT run_type FROM runs WHERE id IN {ids}", logging=logging)
+        instructscore = False
+        comet = False
+        bleu = False
+        for id, run_type in zip(ids, run_types):
+            if 'i' in run_type[0]:
+                if 'instruct' not in stats_dict:
+                    stats_dict['instruct'] = []
+                    instructscore = True
+                stats_dict['instruct'].append(id)
+            if 'c' in run_type[0]:
+                if 'comet' not in stats_dict:
+                    stats_dict['comet'] = []
+                    comet = True
+                stats_dict['comet'].append(id)
+            if 'b' in run_type[0]:
+                bleu = True
+        
+        categories = []
+
+        instructscore_distribution_graph = None
+        error_type_graph = None
+        if 'instruct' in stats_dict:
+            stats_dict['instruct'] = tuple(stats_dict['instruct'])
+            categories.append('InstructScore')
+            
+            query = f"""
+                WITH RankedErrors AS (
+                    SELECT preds.run_id, 
+                        error_type, 
+                        COUNT(*) AS Count,
+                        ROW_NUMBER() OVER (PARTITION BY preds.run_id ORDER BY COUNT(*) DESC) AS row_num
+                    FROM preds_text
+                    JOIN preds ON preds_text.pred_id = preds.id
+                    WHERE error_type IS NOT NULL
+                    AND preds.run_id IN {stats_dict['instruct']}
+                    GROUP BY preds.run_id, error_type
+                )
+                SELECT run_id, error_type AS 'Error Type', Count
+                FROM RankedErrors
+                WHERE row_num <= 10
+                ORDER BY Count, run_id DESC;
+                """
+            error_type_df = read_data_df(query, logging=logging)
+            error_type_df['Run'] = error_type_df['run_id'].apply(get_filename)  # Add the run filename directly to the DataFrame
+
+            query = construct_distribution_query('se_score', 'InstructScore', stats_dict['instruct'])
+            instructscore_distribution_df = read_data_df(query, logging=logging)
+            instructscore_distribution_df['Run'] = instructscore_distribution_df['run_id'].apply(get_filename)
+            
+            error_type_graph = create_histogram(error_type_df, xaxis_title='Error Type', yaxis_title='Count', title='InstructScore: Frequency of types of errors')
+            instructscore_distribution_graph = create_histogram(instructscore_distribution_df, xaxis_title='InstructScore', yaxis_title='Count', title='InstructScore: Distribution of scores per instance')
+                
+                
+        comet_distribution_graph = None
+        if comet:
+            stats_dict['comet'] = tuple(stats_dict['comet'])
+            categories.append('COMET')
+            
+            query = construct_distribution_query('comet_score', 'CometScore', stats_dict['comet'])
+            comet_distribution_df = read_data_df(query, logging=logging)
+            comet_distribution_df['Run'] = comet_distribution_df['run_id'].apply(get_filename)
+            print(f"created comet_distribution_df {comet_distribution_df}")
+            # Calculate the bar width
+            comet_distribution_graph = create_histogram(comet_distribution_df, xaxis_title='CometScore', yaxis_title='Count', title='COMET: Distribution of scores per instance', bar_width=None)
+                
+        if bleu:
+            categories.append('BLEU')
+            
+
+        query = f"""
+                SELECT id AS run_id, 
+                    COALESCE(se_score, NULL, 0) AS InstructScore, 
+                    COALESCE(bleu_score, NULL, 0) AS BLEU, 
+                    COALESCE(comet_score, NULL, 0) AS COMET 
+                    FROM runs 
+                    WHERE id IN {ids};"""
+        scores_df = read_data_df(query, logging=logging)
+        # Normalize columns between 0.25 and 0.9
+        
+        ranges = {
+            "InstructScore": [-20, -6], # InstructScore
+            "BLEU": [0, 45], # BLEU
+            "COMET": [0, 0.8] # COMET
+        }
+        normalized_df = pd.DataFrame()
+        for i, category in enumerate(categories):
+            normalized_df[category] = scores_df[category].apply(lambda x: (x - ranges[category][0]) / (ranges[category][1] - ranges[category][0]))
+        normalized_df['run_id'] = scores_df['run_id']
+        scores_radar_chart = create_radar_chart(scores_df, normalized_df, categories)
+        
+        session['compare_systems_ids'] = ids
+       
+        return render_template('dashboard.j2', help_text=help_text, instructscore=instructscore, bleu=bleu, comet=comet, error_type_graph=error_type_graph, instructscore_distribution_graph=instructscore_distribution_graph, comet_distribution_graph=comet_distribution_graph, scores_radar_chart=scores_radar_chart)
+
+    
+    def create_radar_chart(df, normalized_df, categories):
+
+        # Define colors for the radar chart
+        
+        contrast_colors = ['rgba(63, 81, 181, 0.3)', 'rgba(233, 30, 99, 0.3)', 'rgba(255, 152, 0, 0.3)', 'rgba(76, 175, 80, 0.3)', 'rgba(0, 188, 212, 0.3)', 'rgba(156, 39, 176, 0.3)', 'rgba(255, 235, 59, 0.3)']
+
+        # Create radar chart
+        fig = go.Figure()
+        
+        # Add traces for each run_id
+        for index, row in normalized_df.iterrows():
+            text = [f'{category}: {round(df[category][index], 2)}' for category in categories]
+            text.append(f'{categories[0]}: {round(df[categories[0]][index], 2)}')  # close the loop
+            fig.add_trace(go.Scatterpolar(
+                r=[row[category] for category in categories] + [row[categories[0]]],  # close the loop
+                theta=categories + [categories[0]],  # close the loop
+                fill='toself',
+                fillcolor=contrast_colors[index % len(contrast_colors)],
+                line_color=contrast_colors[index % len(contrast_colors)],
+                name=f'{get_filename(row["run_id"])}',
+                text=text,
+                textposition='top center',
+                marker=dict(size=10)  # Adjust marker size here
+            ))
+
+        # Customize layout
+        fig.update_layout(
+            polar=dict(
+                bgcolor='white',
+                radialaxis=dict(
+                    visible=False,
+                    range=[0, 1]
+                ),
+                angularaxis=dict(
+                    tickvals=[i for i in range(len(categories))],  # Add ticks for the categories
+                    ticktext=categories,
+                    linecolor='black',
+                    linewidth=2
+                )
+            ),
+            showlegend=True,
+            plot_bgcolor='white',  # Set the plot background to white
+            paper_bgcolor='white',  # Set the paper background to white
+            title="Scores: "+', '.join([category for category in categories]),
+            title_font=dict(color='black', size=24),
+            legend_title_text='Runs'
+        )
+
+        radar_chart = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+        return radar_chart
+    
+    def create_histogram(df, xaxis_title, yaxis_title, title, bar_width=None):
+        # Create the bar chart using Plotly
+        fig = px.bar(
+            df,
+            x=xaxis_title,
+            y=yaxis_title,
+            color='Run',
+            barmode='group',
+            title=title,
+            labels={'Category': 'Category', 'Count': 'Count'}
+        )
+        
+
+        
+        # Update the layout with specified colors
+        fig.update_layout(
+            plot_bgcolor='white',
+            font=dict(color='black'),
+            title_font=dict(color='black', size=24),
+            xaxis=dict(
+                showgrid=False, 
+                linecolor='black', 
+                ticks='',  # Hide tick marks
+                tickvals = [],  # Hide tick marks
+                ticktext=[],  # Hide tick text
+                automargin=True
+            ),
+            yaxis=dict(
+                showgrid=False, 
+                gridcolor='#f4f4f9', 
+                linecolor='black', 
+                ticks='outside',
+                automargin=True
+            ),
+            legend_title_text='Runs',
+        )
+        if bar_width:
+            fig.update_traces(width=bar_width)
+
+        
+        # Convert the plot to JSON
+        histogram = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+        return histogram
+    
+    def construct_distribution_query(score, score_name, ids, bins=10.0):
+        return f"""
+            WITH MinMax AS (
+                SELECT 
+                    run_id,
+                    MIN({score}) AS min_score,
+                    MAX({score}) AS max_score
+                FROM preds 
+                WHERE preds.run_id IN {ids}
+                GROUP BY run_id
+            ),
+            BinInfo AS (
+                SELECT 
+                    run_id,
+                    min_score,
+                    max_score,
+                    (max_score - min_score) / {bins} AS bin_size
+                FROM MinMax
+            ),
+            BinnedScores AS (
+                SELECT 
+                    preds.run_id,
+                    {score},
+                    min_score,
+                    bin_size,
+                    FLOOR(({score} - min_score) / bin_size) AS bin_index
+                FROM preds
+                JOIN BinInfo ON preds.run_id = BinInfo.run_id
+                WHERE preds.run_id IN {ids}
+            ),
+            RangeCounts AS (
+                SELECT 
+                    run_id,
+                    bin_index,
+                    MIN(min_score + bin_index * bin_size) AS range_start,
+                    MAX(min_score + (bin_index + 1) * bin_size - 1) AS range_end,
+                    COUNT(*) AS count
+                FROM BinnedScores
+                GROUP BY run_id, bin_index
+            )
+            SELECT 
+                run_id,
+                ROUND((range_start + range_end) / 2, 2) AS {score_name},
+                count AS Count
+            FROM RangeCounts
+            ORDER BY run_id, range_start;
+        """
+    
     @app.route('/visualize_instruct', methods=['POST','GET'])
     def visualize_instruct():
         """
@@ -324,6 +589,7 @@ def create_app(test_config=None):
             str: The rendered HTML template.
         """
         # Get page number from the request, default to 1 if not provided
+        print(f'request.form in visualize_instruct: {request.form}')
         if 'ids' in request.form:
             ids = request.form.get('ids', '[]')
             files = tuple(json.loads(ids))
@@ -332,6 +598,11 @@ def create_app(test_config=None):
             files = request.form.getlist('files')
             print(f"files fom next page: {files}, type: {type(files)}")
             # files = json.loads(files[0])
+        
+        elif 'compare_systems_ids' in session:
+            files = session['compare_systems_ids']
+            print(f"files from session: {files}")
+        
         else:
             files = request.form.getlist('selected_options')
         
@@ -342,7 +613,6 @@ def create_app(test_config=None):
         search_texts = []
         search_query = None
         conjunctions = []
-        print(f'request.form in visualize_instruct: {request.form}')
         if 'search_options[]' and 'search_texts[]' in request.form:
             search_options = request.form.getlist('search_options[]')
             search_texts = request.form.getlist('search_texts[]')
@@ -439,7 +709,7 @@ def create_app(test_config=None):
                             preds.ref_id, 
                             preds.id, 
                             preds.se_score, 
-                            preds.bleu_score,
+                            preds.comet_score,
                             preds.src_id,
                             preds_text.id
                             FROM preds 
@@ -483,22 +753,12 @@ def create_app(test_config=None):
                     input_data[key]['runs'][cur_filename] = {'prediction': {}}
                     input_data[key]['runs'][cur_filename]['pred_id'] = result[6]
                     input_data[key]['runs'][cur_filename]['se_score'] = result[7]
-                    input_data[key]['runs'][cur_filename]['bleu_score'] = result[8]
+                    input_data[key]['runs'][cur_filename]['comet_score'] = round(result[8],2) if result[8] else None
                 input_data[key]['runs'][cur_filename]['prediction'][result[0]] =  {"error_type": result[1], "error_scale": result[2], "error_explanation": result[3], "color": 'red' if result[2] == 'Major' else 'orange'} if result[1] else "None"
                 if does_search_have_error:
                     if result[10] in pred_text_search_ids:
                         input_data[key]['runs'][cur_filename]['prediction'][result[0]]['color'] = 'blue'
                 
-                
-
-        avg_errors = 1
-        most_common_errors = {
-            "error1": 3,
-            "error2": 2,
-            "error3": 1
-        }
-        num_errors = 1
-        se_score = 0.5
         
         # Calculate total number of pages
         total_pages = (total_items + load_items_per_page - 1) // load_items_per_page
@@ -507,8 +767,7 @@ def create_app(test_config=None):
         print(f"search_options: {search_options}")
         
             
-        return render_template('visualize_instruct.j2', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, files=files, num_errors=num_errors, most_common_errors=most_common_errors, avg_errors=avg_errors, se_score=se_score,
-                               search_options=search_options, search_texts=search_texts, conjunctions=conjunctions)
+        return render_template('visualize_instruct.j2', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, files=files, search_options=search_options, search_texts=search_texts, conjunctions=conjunctions)
     
     def get_filename(run_id):
         if run_id not in run_id_dict:
