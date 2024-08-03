@@ -2,7 +2,7 @@ import os
 import re
 import subprocess
 import psutil
-from tream.readwrite_database import write_data
+from translation_canvas.readwrite_database import write_data
 
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 

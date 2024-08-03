@@ -1,5 +1,5 @@
 <!-- 
-    This is the base HTML template file for the InstructScore Visualizer application.
+    This is the base HTML template file for the Translation Canvas application.
     It defines the basic structure and styling of the web page.
 -->
 
@@ -531,6 +531,14 @@
             flex-direction: column;
             align-items: center;
         }
+
+        .banner-text {
+            font-size: 30px;
+            font-weight: bold;
+            color: #fff;
+            margin-left: 10px;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -541,7 +549,7 @@
 </html>
     <div class="banner">
         <a href="{{ url_for('index') }}">
-            <img src="{{ url_for('static', filename='owl_logo.png') }}" alt="Logo">
+            <span class="banner-text">Translation Canvas</span><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
         </a>
 
 

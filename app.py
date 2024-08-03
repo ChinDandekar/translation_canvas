@@ -3,8 +3,9 @@ import os
 import subprocess
 import sys
 import json
-from tream.utils import read_file_content, write_file_content, spawn_independent_process, _delete_runs_subprocess
-from tream.readwrite_database import read_data, read_data_df
+from translation_canvas.utils import read_file_content, write_file_content, spawn_independent_process, _delete_runs_subprocess
+from translation_canvas.readwrite_database import read_data, read_data_df
+from translation_canvas.setup import setup_system
 
 from flask import Flask, render_template, request, session, jsonify, send_from_directory, redirect, url_for
 import secrets
@@ -67,8 +68,8 @@ def create_app(test_config=None):
             str: The rendered HTML template.
         """
         help_text = help_text_json["index"]
-        if not os.path.exists(os.path.join(path_to_file, ".env")) or not os.path.exists(os.path.join(path_to_file, "tream.db")):
-            return render_template('setup.j2',  title='InstructScore Visualizer', help_text=help_text)
+        if not os.path.exists(os.path.join(path_to_file, ".env")) or not os.path.exists(os.path.join(path_to_file, "translation_canvas.db")):
+            return render_template('setup.j2',  title='Translation Canvas', help_text=help_text)
         
         
         # clean out session

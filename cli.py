@@ -1,7 +1,7 @@
 # cli.py
 
 import click
-from tream.app import create_app
+from translation_canvas.app import create_app
 
 @click.command()
 @click.option('--host', default='127.0.0.1', help='The interface to bind to.')

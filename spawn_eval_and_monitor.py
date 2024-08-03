@@ -1,6 +1,6 @@
 import os
 import argparse
-from tream.readwrite_database import write_data, read_data
+from translation_canvas.readwrite_database import write_data, read_data
 import subprocess
 import time
 import sys

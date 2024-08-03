@@ -20,7 +20,7 @@ def setup_system():
     if not os.path.exists(uploaded_files_path):
         os.makedirs(uploaded_files_path)
 
-    database_path = os.path.join(path_to_file, 'tream.db')
+    database_path = os.path.join(path_to_file, 'translation_canvas.db')
     con = duckdb.connect(database=database_path)
 
     results = con.execute("CREATE SEQUENCE runs_id_sequence START 1;")

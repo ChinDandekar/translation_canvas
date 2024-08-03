@@ -1,4 +1,4 @@
-from tream.readwrite_database import write_data, read_data
+from translation_canvas.readwrite_database import write_data, read_data
 import json
 import os
 import argparse

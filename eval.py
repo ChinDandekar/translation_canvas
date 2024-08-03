@@ -4,14 +4,13 @@ import argparse
 import os
 from collections import Counter
 from dotenv import load_dotenv
-from tream.readwrite_database import write_data, read_data
+from translation_canvas.readwrite_database import write_data, read_data
 from InstructScore_SEScore3.InstructScore import InstructScore
 from comet import download_model, load_from_checkpoint
 import json
 import sys
 import sacrebleu
 
-sys.setrecursionlimit(10000000)
 
 JOBS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jobs")
 CUDA_PATH = os.path.join(os.path.dirname(JOBS_PATH), 'tmp', 'cuda_devices.json')

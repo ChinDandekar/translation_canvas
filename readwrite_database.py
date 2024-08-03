@@ -5,7 +5,7 @@ from datetime import datetime
 import time
 import random
 
-path_to_db = os.path.join(os.path.dirname(__file__), 'tream.db') 
+path_to_db = os.path.join(os.path.dirname(__file__), 'translation_canvas.db') 
 path_to_rwlock = os.path.join(os.path.dirname(__file__), 'tmp', 'duckdb.lock')
 if not os.path.exists(path_to_rwlock):
     open(path_to_rwlock, 'w').close()
