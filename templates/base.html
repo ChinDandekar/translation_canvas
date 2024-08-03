@@ -520,6 +520,8 @@
             max-height: 30%;
             max-width: 30%;
             border-radius: 40%;
+            display: flex;
+            flex-direction: column;
         }
 
         .bar-chart {
@@ -539,6 +541,15 @@
             margin-left: 10px;
             text-decoration: none;
         }
+        .banner-image {
+            width: 10%;
+            height: 10%;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -548,8 +559,8 @@
 </body>
 </html>
     <div class="banner">
-        <a href="{{ url_for('index') }}">
-            <span class="banner-text">Translation Canvas</span><img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" />
+        <a href="{{ url_for('index') }}" class="banner-text">
+            Translation Canvas
         </a>
 
 
