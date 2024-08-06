@@ -79,9 +79,8 @@
             color: #fff;
             border-radius: 10px;
             padding: 10px 20px;
-            margin-bottom: 60px;
+            margin-bottom: 20px;
             opacity: 0.95;
-            margin-top: 10vh;
             z-index: 1;
             position: relative;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
@@ -582,44 +581,6 @@
         {% endfor %}
     </span> -->
 
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // JavaScript code to make tooltips appear on hover
-        const tooltips = document.querySelectorAll('.tooltip');
-        tooltips.forEach((tooltip) => {
-            const parent = tooltip.previousElementSibling;
-            parent.addEventListener('mouseover', (e) => {
-                document.body.appendChild(tooltip);
-                tooltip.style.display = 'block';
-                tooltip.style.left = `${e.clientX}px`;
-                tooltip.style.top = `${e.clientY}px`;
-            });
-            parent.addEventListener('mouseout', () => {
-                tooltip.style.display = 'none';
-                document.body.removeChild(tooltip);
-            });
-        });
-
-        // JavaScript code to make help-tooltips appear on hover
-        const help_tooltips = document.querySelectorAll('.help-tooltip');
-        const helpCircle = document.querySelector('.help-circle');
-        help_tooltips.forEach((help_tooltip) => {
-            const parent = help_tooltip.previousElementSibling;
-            parent.addEventListener('mouseover', (e) => {
-                help_tooltip.style.display = 'block';
-                const tooltipWidth = help_tooltip.offsetWidth;
-                const tooltipHeight = help_tooltip.offsetHeight;
-                help_tooltip.style.left = `${helpCircle.offsetLeft - 1.05 * tooltipWidth}px`;
-                help_tooltip.style.top = `${helpCircle.offsetTop}px`;
-            });
-            parent.addEventListener('mouseout', () => {
-                help_tooltip.style.display = 'none';
-            });
-        });
-
-    });
-</script>
 
 </body>
 </html>

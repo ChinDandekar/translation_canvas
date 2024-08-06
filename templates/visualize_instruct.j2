@@ -123,6 +123,13 @@ Translation Canvas
         margin: 0px;
     }
 
+    .error-explanation {
+        display: none;
+        font-size: 20px;
+        color: black;
+        margin: 0px;
+    }
+
 </style>
 
 <div class="content-holder">
@@ -240,10 +247,8 @@ Translation Canvas
                                 {% else %}
                                     <span class="description">{{ key }}</span>
                                 {% endif %}
-                                <span class="tooltip">
+                                <span class="tooltip" id = "{{ key }}">
                                     Error Type: {{ value.error_type }}<br>
-                                    Major/minor: {{ value.error_scale }}<br>
-                                    Error explanation: {{ value.error_explanation }}
                                 </span>
                             {% else %}
                                 {{ value }}
@@ -256,6 +261,13 @@ Translation Canvas
                                 <button type="button" class="move-down-button" id="moveDown-{{ outerloop_index }}-{{ loop.index }}" onclick="moveDown('prediction-{{ outerloop_index }}-{{ loop.index }}')">⬇</button>
                             {% endif %}
                         </div>
+                    </div>
+                    <div class="container-with-shadow" style="display:none">
+                        {% for key, value in data.prediction.items() %}
+                            {% if value is mapping and value.error_explanation %}
+                                <span class="error-explanation" id="error_{{ key }}">Error Explanation: {{ value.error_explanation }}</span>
+                            {% endif %}
+                        {% endfor %}
                     </div>
                 {% endfor %}
             </div>
@@ -642,6 +654,33 @@ Translation Canvas
         // Optionally, reset the form to its initial state
 
     }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // JavaScript code to make tooltips appear on hover
+        const tooltips = document.querySelectorAll('.tooltip');
+        tooltips.forEach((tooltip) => {
+            const parent = tooltip.previousElementSibling;
+            parent.addEventListener('mouseover', (e) => {
+                document.body.appendChild(tooltip);
+                tooltip.style.display = 'block';
+                tooltip.style.left = `${e.clientX}px`;
+                tooltip.style.top = `${e.clientY}px`;
+                id = tooltip.id;
+                explanation_element = document.getElementById(`error_${id}`)
+                explanation_element.style.display = 'block';
+                explanation_element.parentElement.style.display = 'block';
+            });
+            parent.addEventListener('mouseout', () => {
+                tooltip.style.display = 'none';
+                document.body.removeChild(tooltip);
+                id = tooltip.id;
+                explanation_element = document.getElementById(`error_${id}`)
+                explanation_element.style.display = 'none';
+                explanation_element.parentElement.style.display = 'none';
+            });
+        });
+    })
+
 
     </script>
 
