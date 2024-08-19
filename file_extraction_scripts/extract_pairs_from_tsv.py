@@ -27,7 +27,7 @@ def extract_pairs_from_tsv(files: list[str]) -> list:
     src_set = set()
     for index, row in translations.iterrows():
         if row['globalSegId'] not in id_set and row['system'] == 'GPT4-5shot':
-            pairs.append({'prediction': row['target']})
+            pairs.append({'prediction': row['target'], 'source': row['source']})
             id_set.add(row['globalSegId'])
             # Add only prediction and reference data to the pairs list
         if row['globalSegId'] not in ref_set and row['system'] == 'refA':
