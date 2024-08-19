@@ -1,6 +1,6 @@
 # Translation Canvas
 
-[![PyPI version](https://badge.fury.io/py/translation-canvas.svg)](https://badge.fury.io/py/TranslationCanvas)
+[![PyPI version](https://badge.fury.io/py/translation-canvas.svg)](https://badge.fury.io/py/translation-canvas)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
@@ -100,20 +100,6 @@ ssh -L your-port:127.0.0.1:5000 username@yourserver.com
 
 **Translation Canvas** has been tested with machine translation experts, who found it to be both effective and user-friendly. The tool has shown to be particularly useful in pinpointing subtle errors that might be overlooked by traditional evaluation methods.
 
-## Future Work
 
-While **Translation Canvas** currently offers robust evaluation and visualization features, future versions will include:
-
-**User-Customized Explanations:** Allowing users to tailor the error explanations to their specific needs.
-
-**Expanded Metric Support:** Integration of additional evaluation metrics and custom scoring methods.
-
-**Collaborative Features:** Enabling teams to collaborate and share analysis results within the dashboard.
-
-## Acknowledgments
-
-**InstructScore:** For enabling the natural language explanations of translation errors.
-**COMET and BLEU:** For providing essential evaluation metrics that power the analysis.
-Special thanks to all contributors and the broader research community for their invaluable feedback.
 
 
