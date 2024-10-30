@@ -3,17 +3,17 @@ import os
 import subprocess
 import sys
 import json
-from translation_canvas.utils import read_file_content, write_file_content, spawn_independent_process, _delete_runs_subprocess
+from translation_canvas.utils import read_file_content, write_file_content, spawn_independent_process, _delete_runs_subprocess, get_files_from_session_or_form, extract_search_configuration
 from translation_canvas.readwrite_database import read_data, read_data_df
 from translation_canvas.setup import setup_system
+from translation_canvas.sql_queries import get_filename, construct_distribution_query, construct_full_search_query, construct_pred_text_query, error_type_distribution_query, get_scores, get_all_refs_query, get_instances_query
+from translation_canvas.plotly_functions import create_histogram, create_radar_chart
 
 from flask import Flask, render_template, request, session, jsonify, send_from_directory, redirect, url_for
 import secrets
 import rocher.flask
 from werkzeug.utils import secure_filename
 
-import plotly, plotly.express as px
-import plotly.graph_objs as go
 import plotly.utils
 import pandas as pd
 from datetime import datetime
@@ -29,7 +29,6 @@ UPLOAD_FOLDER = os.path.join(path_to_file, "uploaded_files")  # Specify your upl
 SCRIPTS_BASEPATH = os.path.join(path_to_file, "file_extraction_scripts")  # Specify your flaskcode resource basepath
 CUDA_DEVICES_FILE = os.path.join(path_to_file, "tmp", "cuda_devices.json")
 logging = False
-run_id_dict = {}
 ranking_log = os.path.join(path_to_file, "tmp", "ranking.log")
 if not os.path.exists(ranking_log):
     open(ranking_log, 'w').close()
@@ -74,8 +73,7 @@ def create_app(test_config=None):
         
         # clean out session
         session.clear()
-        runs = read_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type, exit_status FROM runs ORDER BY target_lang, se_score, bleu_score DESC;", logging=logging)
-        print(runs)
+        runs = read_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type, exit_status FROM runs ORDER BY target_lang, se_score, bleu_score DESC LIMIT 5;", logging=logging)
         table_data = []
         for run in runs:
             se_score = round(float(run[5]), 3) if run[5] else 'N/A'
@@ -131,8 +129,6 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
-        print(f"session in process_input_form: {session}")
-        print(f"process_input_form request.form: {request.form}")
         tgt = session['step1_data']['target_lang']
         src = session['step1_data']['source_lang']
         evaluation_type = session['step1_data']['evaluation_type']
@@ -170,7 +166,6 @@ def create_app(test_config=None):
             command += " --src True"
         else:
             command += " --ref True --src True"
-        print(f"command: {command}")      
         spawn_independent_process(command)
         help_text = help_text_json["process_input_form"]
         return render_template('log_output.j2', memorable_name=memorable_name, file_name=new_file, help_text=help_text)
@@ -200,7 +195,6 @@ def create_app(test_config=None):
         load_dotenv()
         available_gpus = os.getenv('AVAILABLE_GPU_IDS')
         available_gpus = available_gpus.split(',') if available_gpus else []
-        print(f"available_gpus: {available_gpus}")
         
         return render_template('input_form.j2', help_text=help_text, source_languages=source_languages, 
                                target_languages=target_languages, 
@@ -221,7 +215,6 @@ def create_app(test_config=None):
         
 
         
-        print(f"request.form: {request.form}, session: {session}")
         if 'file_options' in request.form:              # user has chosen a file type
             
             if 'file_data' in request.form:
@@ -252,7 +245,6 @@ def create_app(test_config=None):
             if 'evaluation_type' in request.form:
                 evaluation_type = request.form.getlist('evaluation_type')
             session['step1_data']['evaluation_type'] = evaluation_type
-            print(f"current session in file_input right after input_form: {session}")
             
             data_types = session['step1_data']['data_types'] if 'step1_data' in session and 'data_types' in session['step1_data'] else None
             if 'data_types' in request.form:
@@ -260,7 +252,6 @@ def create_app(test_config=None):
                 
             src = False if data_types == 'ref' else True
             ref = False if data_types == 'src' else True
-            print(f"src: {src}, ref: {ref}")
                 
                 
             if request.form['input_method'] == 'file':
@@ -291,7 +282,6 @@ def create_app(test_config=None):
         filename = request.form['file']
         memorable_name = request.form['memorable_name']
         session['step1_data']['file'] = filename
-        print(f"session in preview_pairs: {session}")
         write_file_content(os.path.join(path_to_file, 'file_extraction_scripts', f'extract_pairs_from_{file_type}.py'), source_code)
         results = subprocess.run([sys.executable, os.path.join(path_to_file, 'file_to_json.py'), 
                         '--file_name', filename, '--memorable_name', memorable_name, '--file_type', file_type],
@@ -368,23 +358,7 @@ def create_app(test_config=None):
             stats_dict['instruct'] = tuple(stats_dict['instruct'])
             categories.append('InstructScore')
             
-            query = f"""
-                WITH RankedErrors AS (
-                    SELECT preds.run_id, 
-                        error_type, 
-                        COUNT(*) AS Count,
-                        ROW_NUMBER() OVER (PARTITION BY preds.run_id ORDER BY COUNT(*) DESC) AS row_num
-                    FROM preds_text
-                    JOIN preds ON preds_text.pred_id = preds.id
-                    WHERE error_type IS NOT NULL
-                    AND preds.run_id IN {stats_dict['instruct']}
-                    GROUP BY preds.run_id, error_type
-                )
-                SELECT run_id, error_type AS 'Error Type', Count
-                FROM RankedErrors
-                WHERE row_num <= 10
-                ORDER BY Count, run_id DESC;
-                """
+            query = error_type_distribution_query(stats_dict)
             error_type_df = read_data_df(query, logging=logging)
             error_type_df['Run'] = error_type_df['run_id'].apply(get_filename)  # Add the run filename directly to the DataFrame
 
@@ -393,7 +367,7 @@ def create_app(test_config=None):
             instructscore_distribution_df['Run'] = instructscore_distribution_df['run_id'].apply(get_filename)
             
             error_type_graph = create_histogram(error_type_df, xaxis_title='Error Type', yaxis_title='Count', title='InstructScore: Frequency of types of errors')
-            instructscore_distribution_graph = create_histogram(instructscore_distribution_df, xaxis_title='InstructScore', yaxis_title='Count', title='InstructScore: Distribution of scores per instance')
+            instructscore_distribution_graph = create_histogram(instructscore_distribution_df, xaxis_title='InstructScore', yaxis_title='Count', title='InstructScore: Distribution of scores per instance', ticks='outside')
                 
                 
         comet_distribution_graph = None
@@ -405,26 +379,19 @@ def create_app(test_config=None):
             comet_distribution_df = read_data_df(query, logging=logging)
             comet_distribution_df['Run'] = comet_distribution_df['run_id'].apply(get_filename)
             # Calculate the bar width
-            comet_distribution_graph = create_histogram(comet_distribution_df, xaxis_title='CometScore', yaxis_title='Count', title='COMET: Distribution of scores per instance', bar_width=None)
+            comet_distribution_graph = create_histogram(comet_distribution_df, xaxis_title='CometScore', yaxis_title='Count', title='COMET: Distribution of scores per instance', bar_width=None, ticks='outside')
                 
         if bleu:
             categories.append('BLEU')
             
 
-        query = f"""
-                SELECT id AS run_id, 
-                    COALESCE(se_score, NULL, 0) AS InstructScore, 
-                    COALESCE(bleu_score, NULL, 0) AS BLEU, 
-                    COALESCE(comet_score, NULL, 0) AS COMET 
-                    FROM runs 
-                    WHERE id IN {ids};"""
+        query = get_scores(ids)
         scores_df = read_data_df(query, logging=logging)
-        # Normalize columns between 0.25 and 0.9
         
         ranges = {
-            "InstructScore": [-20, -6], # InstructScore
-            "BLEU": [0, 45], # BLEU
-            "COMET": [0, 0.8] # COMET
+            "InstructScore": [-25, -2], # InstructScore
+            "BLEU": [0, 48], # BLEU
+            "COMET": [0, 0.9] # COMET
         }
         normalized_df = pd.DataFrame()
         for i, category in enumerate(categories):
@@ -434,152 +401,9 @@ def create_app(test_config=None):
         
         session['compare_systems_ids'] = ids
        
-        return render_template('dashboard.j2', help_text=help_text, instructscore=instructscore, bleu=bleu, comet=comet, error_type_graph=error_type_graph, instructscore_distribution_graph=instructscore_distribution_graph, comet_distribution_graph=comet_distribution_graph, scores_radar_chart=scores_radar_chart)
+        return render_template('dashboard.j2', help_text=help_text, instructscore=instructscore, bleu=bleu, comet=comet, error_type_graph=error_type_graph, instructscore_distribution_graph=instructscore_distribution_graph, comet_distribution_graph=comet_distribution_graph, scores_radar_chart=scores_radar_chart) 
 
-    
-    def create_radar_chart(df, normalized_df, categories):
 
-        # Define colors for the radar chart
-        
-        contrast_colors = ['rgba(63, 81, 181, 0.3)', 'rgba(233, 30, 99, 0.3)', 'rgba(255, 152, 0, 0.3)', 'rgba(76, 175, 80, 0.3)', 'rgba(0, 188, 212, 0.3)', 'rgba(156, 39, 176, 0.3)', 'rgba(255, 235, 59, 0.3)']
-
-        # Create radar chart
-        fig = go.Figure()
-        
-        # Add traces for each run_id
-        for index, row in normalized_df.iterrows():
-            text = [f'{category}: {round(df[category][index], 2)}' for category in categories]
-            text.append(f'{categories[0]}: {round(df[categories[0]][index], 2)}')  # close the loop
-            fig.add_trace(go.Scatterpolar(
-                r=[row[category] for category in categories] + [row[categories[0]]],  # close the loop
-                theta=categories + [categories[0]],  # close the loop
-                fill='toself',
-                fillcolor=contrast_colors[index % len(contrast_colors)],
-                line_color=contrast_colors[index % len(contrast_colors)],
-                name=f'{get_filename(row["run_id"])}',
-                text=text,
-                textposition='top center',
-                marker=dict(size=10)  # Adjust marker size here
-            ))
-
-        # Customize layout
-        fig.update_layout(
-            polar=dict(
-                bgcolor='white',
-                radialaxis=dict(
-                    visible=False,
-                    range=[0, 1]
-                ),
-                angularaxis=dict(
-                    tickvals=[i for i in range(len(categories))],  # Add ticks for the categories
-                    ticktext=categories,
-                    linecolor='black',
-                    linewidth=2
-                )
-            ),
-            showlegend=True,
-            plot_bgcolor='white',  # Set the plot background to white
-            paper_bgcolor='white',  # Set the paper background to white
-            title="Scores: "+', '.join([category for category in categories]),
-            title_font=dict(color='black', size=24),
-            legend_title_text='Runs'
-        )
-
-        radar_chart = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-        return radar_chart
-    
-    def create_histogram(df, xaxis_title, yaxis_title, title, bar_width=None):
-        # Create the bar chart using Plotly
-        fig = px.bar(
-            df,
-            x=xaxis_title,
-            y=yaxis_title,
-            color='Run',
-            barmode='group',
-            title=title,
-            labels={'Category': 'Category', 'Count': 'Count'}
-        )
-        
-
-        
-        # Update the layout with specified colors
-        fig.update_layout(
-            plot_bgcolor='white',
-            font=dict(color='black'),
-            title_font=dict(color='black', size=24),
-            xaxis=dict(
-                showgrid=False, 
-                linecolor='black', 
-                ticks='',  # Hide tick marks
-                tickvals = [],  # Hide tick marks
-                ticktext=[],  # Hide tick text
-                automargin=True
-            ),
-            yaxis=dict(
-                showgrid=False, 
-                gridcolor='#f4f4f9', 
-                linecolor='black', 
-                ticks='outside',
-                automargin=True
-            ),
-            legend_title_text='Runs',
-        )
-        if bar_width:
-            fig.update_traces(width=bar_width)
-
-        
-        # Convert the plot to JSON
-        histogram = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-        return histogram
-    
-    def construct_distribution_query(score, score_name, ids, bins=10.0, precision=2):
-        return f"""
-            WITH MinMax AS (
-                SELECT 
-                    run_id,
-                    MIN({score}) AS min_score,
-                    MAX({score}) AS max_score
-                FROM preds 
-                WHERE preds.run_id IN {ids}
-                GROUP BY run_id
-            ),
-            BinInfo AS (
-                SELECT 
-                    run_id,
-                    min_score,
-                    max_score,
-                    (max_score - min_score) / {bins} AS bin_size
-                FROM MinMax
-            ),
-            BinnedScores AS (
-                SELECT 
-                    preds.run_id,
-                    {score},
-                    min_score,
-                    bin_size,
-                    FLOOR(({score} - min_score) / bin_size) AS bin_index
-                FROM preds
-                JOIN BinInfo ON preds.run_id = BinInfo.run_id
-                WHERE preds.run_id IN {ids}
-            ),
-            RangeCounts AS (
-                SELECT 
-                    run_id,
-                    bin_index,
-                    MIN(min_score + bin_index * bin_size) AS range_start,
-                    MAX(min_score + (bin_index + 1) * bin_size - 1) AS range_end,
-                    COUNT(*) AS count
-                FROM BinnedScores
-                GROUP BY run_id, bin_index
-            )
-            SELECT 
-                run_id,
-                ROUND((range_start + range_end) / 2, {precision}) AS {score_name},
-                count AS Count
-            FROM RangeCounts
-            ORDER BY run_id, range_start;
-        """
-    
     @app.route('/visualize_instruct', methods=['POST','GET'])
     def visualize_instruct():
         """
@@ -589,59 +413,16 @@ def create_app(test_config=None):
             str: The rendered HTML template.
         """
         # Get page number from the request, default to 1 if not provided
-        print(f'request.form in visualize_instruct: {request.form}')
-        if 'ids' in request.form:
-            ids = request.form.get('ids', '[]')
-            files = tuple(json.loads(ids))
+        files = get_files_from_session_or_form(request, session)
         
-        elif 'files' in request.form:
-            files = request.form.getlist('files')
-            print(f"files fom next page: {files}, type: {type(files)}")
-            # files = json.loads(files[0])
-        
-        elif 'compare_systems_ids' in session:
-            files = session['compare_systems_ids']
-            print(f"files from session: {files}")
-        
-        else:
-            files = request.form.getlist('selected_options')
-        
-        if isinstance(files, str):
-            files = [files]
-        
-        search_options = []
-        search_texts = []
-        search_query = None
-        conjunctions = []
-        if 'search_options[]' and 'search_texts[]' in request.form:
-            search_options = request.form.getlist('search_options[]')
-            search_texts = request.form.getlist('search_texts[]')
-            search_texts = [text.replace("'", "''") for text in search_texts]
-            conjunctions = request.form.getlist('conjunctions[]')
-            if len(search_options) > 0 and len(search_texts) > 0:
-                search_query = construct_full_query(search_options, search_texts, conjunctions)
-            print(f"search_option: {search_options}")
-            print(f"search_text: {search_texts}")
-            print(f"conjunctions: {conjunctions}")
-        
-        if 'search_query' in session and session['search_query'] and not search_query:
-            search_query = session['search_query']
-            search_options = session['search_options']
-            search_texts = session['search_texts']
-            conjunctions = session['conjunctions']
+        search_options, search_texts, search_query, conjunctions = extract_search_configuration(request, session)
         session['search_query'] = search_query
         session['search_options'] = search_options
         session['search_texts'] = search_texts
         session['conjunctions'] = conjunctions
         
-        
-        print(f"session is {session}")
         input_data = []
-        print(f"Selected files: {files}")
-        
-                    
         page_number = int(request.form.get('current_page', 1))
-        print(f"Page number: {page_number}")
         
         load_items_per_page = ITEMS_PER_PAGE//len(files)
         load_items_per_page = load_items_per_page if load_items_per_page >= 1 else 1
@@ -650,47 +431,16 @@ def create_app(test_config=None):
         start_index = (page_number - 1) * load_items_per_page
         
         # get ids for files selected
-        
         run_ids = tuple(files)
         
         # first get all references used in the selected files
-        print(f"search_query: {search_query}")
-        
-        
-        read_query = (
-            f"""SELECT DISTINCT ref_id,
-                src_id,    
-                s.source_text,
-                r.source_text
-                FROM 
-                    preds p
-                LEFT JOIN 
-                    src s ON p.src_id = s.id
-                LEFT JOIN 
-                    refs r ON p.ref_id = r.id
-                WHERE 
-                    run_id IN {run_ids} 
-               """
-                            )
-        if search_query:
-            read_query += f"AND p.id IN ({search_query}) "
-        
-        read_query += f"""
-             ORDER BY
-                    ref_id, src_id
-                OFFSET 
-                        {start_index} 
-                LIMIT 
-                    {load_items_per_page};
-            """
+        read_query = get_all_refs_query(search_query, load_items_per_page, start_index, run_ids)
         total_items_query = (
                               f"SELECT COUNT( * ) FROM (SELECT DISTINCT ref_id, src_id FROM preds WHERE run_id IN {run_ids})  "
                             )
         if search_query:
             total_items_query = f"SELECT COUNT( * ) FROM (SELECT DISTINCT ref_id, src_id FROM preds WHERE run_id IN {run_ids} AND preds.id IN ({search_query}));"
-        print(search_query)
         total_items = read_data(total_items_query, logging=logging)[0][0]
-        print(total_items)
         
         results = read_data(read_query, logging=logging)
         ref_ids = tuple([result[0] for result in results])
@@ -699,40 +449,7 @@ def create_app(test_config=None):
         ref_ids_sql = f"({','.join([str(ref_id) for ref_id in ref_ids if ref_id])})"
         src_ids_sql = f"({','.join([str(src_id) for src_id in src_ids if src_id])})"
         input_data = {(result[0], result[1]): {'reference': result[3], 'runs' : {}, "source": result[2]} for result in results}       # use ref_id and src_id as a unique id for each instance
-        print(f"ref_ids: {ref_ids}")
-        print(f"src_ids: {src_ids}")
-        print(f"run_ids: {run_ids}")
-        read_query = (
-                f"""SELECT preds_text.source_text, 
-                            preds_text.error_type, 
-                            preds_text.error_scale, 
-                            preds_text.error_explanation, 
-                            runs.filename, 
-                            preds.ref_id, 
-                            preds.id, 
-                            preds.se_score, 
-                            preds.comet_score,
-                            preds.src_id,
-                            preds_text.id
-                            FROM preds 
-                            JOIN preds_text 
-                            ON (preds_text.pred_id = preds.id) 
-                            JOIN runs
-                            ON (runs.id = preds.run_id)
-                            WHERE run_id IN {run_ids} 
-                            """
-                )
-        
-        if len(ref_ids_sql) > 2 and len(src_ids_sql) > 2:
-            read_query += f"AND (preds.ref_id IN {ref_ids_sql} OR preds.src_id IN {src_ids_sql}) "
-        elif len(ref_ids_sql) > 2:
-            read_query += f"AND preds.ref_id IN {ref_ids_sql} "
-        elif len(src_ids_sql) > 2:
-            read_query += f"AND preds.src_id IN {src_ids_sql} "
-        else:
-            read_query += "AND 1=0 "
-        read_query += f"ORDER BY preds.ref_id, preds.src_id;"
-        print(f"read_query: {read_query}")
+        read_query = get_instances_query(run_ids, ref_ids_sql, src_ids_sql)
         results = read_data(read_query, logging=logging)
         
         does_search_have_error = False
@@ -741,9 +458,7 @@ def create_app(test_config=None):
                 if 'error' in option and not does_search_have_error:
                     pred_ids = tuple([result[6] for result in results])
                     preds_text_seach_query = construct_pred_text_query(search_options, search_texts, conjunctions, pred_ids)
-                    print(f"this is preds_text_seach_query: {preds_text_seach_query}")
                     preds_text_search_results = read_data(preds_text_seach_query, logging=logging)
-                    print(f"preds_text_search_results: {preds_text_search_results}")
                     pred_text_search_ids = tuple([pred_text[0] for pred_text in preds_text_search_results])
                     does_search_have_error = True
             
@@ -761,90 +476,11 @@ def create_app(test_config=None):
                     if result[10] in pred_text_search_ids:
                         input_data[key]['runs'][cur_filename]['prediction'][result[0]]['color'] = 'blue'
                 
-        
         # Calculate total number of pages
         total_pages = (total_items + load_items_per_page - 1) // load_items_per_page
         help_text = help_text_json["visualize_instruct"]
         
-        print(f"search_options: {search_options}")
-        
-            
         return render_template('visualize_instruct.j2', input_data=input_data, help_text=help_text, total_pages=total_pages, current_page=page_number, files=files, search_options=search_options, search_texts=search_texts, conjunctions=conjunctions)
-    
-    def get_filename(run_id):
-        if run_id not in run_id_dict:
-            if len(run_id_dict) == 0:
-                results = read_data(f"SELECT id, filename FROM runs;")
-            else:
-                results = read_data(f"SELECT id, filename FROM runs WHERE id not in {tuple(run_id_dict.keys())}")
-            for result in results:
-                run_id_dict[result[0]] = result[1]
-                
-        return run_id_dict[int(run_id)]
-    
-    def construct_full_query(search_options, search_texts, conjunctions):
-        search_query = "SELECT DISTINCT preds.id FROM preds"
-        if 'preds_text.error_type' in search_options or 'preds_text.error_scale' in search_options or 'preds_text.error_explanation' in search_options:
-            search_query += " JOIN preds_text ON (preds_text.pred_id = preds.id)"
-        if 'runs.filename' in search_options:
-            search_query += " JOIN runs ON (preds.run_id = runs.id)"
-        if 'refs.source_text' in search_options or 'refs.lang' in search_options:
-            search_query += " LEFT JOIN refs ON (refs.id = preds.ref_id)"
-        if 'src.source_text' in search_options or 'src.lang' in search_options:
-            search_query += " LEFT JOIN src ON (src.id = preds.src_id)"
-            
-        
-        is_last_conjunctor_not = False    
-        for i, (search_option, search_text) in enumerate(zip(search_options, search_texts)):
-            if i > 0:
-                if conjunctions[i-1] == 'NOT':
-                    search_query += f" AND preds.id NOT IN (SELECT preds.id FROM preds JOIN preds_text ON (preds_text.pred_id = preds.id) AND {search_option} LIKE '%{search_text}%')"
-                    is_last_conjunctor_not = True
-                else: 
-                    search_query += f" {conjunctions[i-1]}"
-            else:
-                search_query += " WHERE"
-            if not is_last_conjunctor_not:
-                search_query += get_search_query(search_option, search_text)
-            else:
-                is_last_conjunctor_not = False
-        return search_query
-    
-    def construct_pred_text_query(search_options, search_texts, conjunctions, pred_ids):
-        search_option_errors, search_query_errors, conjunction_errors = trim_search_query_for_error(search_options, search_texts, conjunctions)
-        
-        search_query = "SELECT DISTINCT preds_text.id FROM preds_text"
-        is_last_conjunctor_not = False    
-        for i, (search_option, search_text) in enumerate(zip(search_option_errors, search_query_errors)):
-            if i > 0:
-                if conjunction_errors[i-1] == 'NOT':
-                    search_query += f" AND preds_text.id NOT IN (SELECT preds_text.id FROM preds_text WHERE {search_option} LIKE '%{search_text}%')"
-                    is_last_conjunctor_not = True
-                else: 
-                    search_query += f" {conjunction_errors[i-1]}"
-            else:
-                search_query += " WHERE"
-            if not is_last_conjunctor_not:
-                search_query += get_search_query(search_option, search_text)
-            else:
-                is_last_conjunctor_not = False
-        
-        search_query += f" AND preds_text.pred_id IN {pred_ids};"
-        return search_query
-        
-    def trim_search_query_for_error(search_option, search_query, conjunctions):
-        search_option_errors = []
-        search_query_errors = []
-        conjunction_errors = []
-        for i, option in enumerate(search_option):
-            if 'error' in option:
-                search_option_errors.append(option)
-                search_query_errors.append(search_query[i])
-                conjunction_errors.append(conjunctions[i] if i < len(conjunctions) else 'AND')
-        return search_option_errors, search_query_errors, conjunction_errors
-    
-    def get_search_query(search_option, search_text):
-        return f" {search_option} LIKE '%{search_text}%'"
     
     
     @app.route('/log', methods=['POST'])
@@ -857,19 +493,17 @@ def create_app(test_config=None):
                 data = json.loads(data_str)
             else:
                 data = request.get_json()
-
-            
             
             higher_pred_id = data.get('higherPredId')
             lower_pred_id = data.get('lowerPredId')
             
             with open(ranking_log, 'a') as f:
                 f.write(f"{dt_string}: {higher_pred_id} > {lower_pred_id}\n")
-            
             return jsonify({"status": "success", "message": "Log entry created"}), 200
     
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 400
+        
         
     @app.route('/delete_runs', methods=['POST'])
     def delete_runs():
@@ -889,12 +523,11 @@ def create_app(test_config=None):
             return jsonify({"status": "success", "message": f"Runs {run_ids} were deleted"}), 200
             
         except Exception as e:
-            print(f"Error: {e}")
             return jsonify({"status": "error", "message": str(e)}), 400
+    
     
     @app.route('/clear_search_cache', methods=['POST'])
     def clear_search_cache():
-        print(f"session before clearing: {session}")
         if 'search_options' in session:
             del session['search_options']
         if 'search_texts' in session:
@@ -903,7 +536,6 @@ def create_app(test_config=None):
             del session['search_query']
         if 'conjunctions' in session:
             del session['conjunctions']
-        print(f"session after clearing: {session}")
         return jsonify({"status": "success", "message": "Search cache cleared"}), 200
 
 

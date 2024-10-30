@@ -3,6 +3,8 @@ import re
 import subprocess
 import psutil
 from translation_canvas.readwrite_database import write_data
+import json
+from translation_canvas.sql_queries import construct_full_search_query
 
 path_to_file = os.path.dirname(os.path.abspath(__file__))
 
@@ -62,3 +64,44 @@ def kill_processes_by_run_id(selected_run_id):
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess) as e:
             print(f"Error while trying to kill process {proc.info['pid']}, error: {e}")
             pass
+
+
+def get_files_from_session_or_form(request, session):
+    if 'ids' in request.form:
+        ids = request.form.get('ids', '[]')
+        files = tuple(json.loads(ids))
+    
+    elif 'files' in request.form:
+        files = request.form.getlist('files')
+    
+    elif 'compare_systems_ids' in session:
+        files = session['compare_systems_ids']
+    
+    else:
+        files = request.form.getlist('selected_options')
+    
+    if isinstance(files, str):
+        files = [files]
+    return files
+
+
+def extract_search_configuration(request, session):
+    search_options = []
+    search_texts = []
+    search_query = None
+    conjunctions = []
+    if 'search_options[]' and 'search_texts[]' in request.form:
+        search_options = request.form.getlist('search_options[]')
+        search_texts = request.form.getlist('search_texts[]')
+        search_texts = [text.replace("'", "''") for text in search_texts]
+        conjunctions = request.form.getlist('conjunctions[]')
+        if len(search_options) > 0 and len(search_texts) > 0:
+            search_query = construct_full_search_query(search_options, search_texts, conjunctions)
+    
+    if 'search_query' in session and session['search_query'] and not search_query:
+        search_query = session['search_query']
+        search_options = session['search_options']
+        search_texts = session['search_texts']
+        conjunctions = session['conjunctions']
+
+    return search_options,search_texts,search_query,conjunctions

@@ -249,7 +249,7 @@ Translation Canvas
                                     {% else %}
                                         <span class="description">{{ key }}</span>
                                     {% endif %}
-                                    <span class="tooltip" id = "tooltip-{{ key }}-{{ outerloop_index }}-{{ loop.index }}">
+                                    <span class="tooltip" id = "tooltip-{{ key }}-{{ outerloop_index }}-{{ loop.index }}-{{ data.pred_id }}">
                                         Error Type: {{ value.error_type }}<br>
                                     </span>
                                 {% else %}
@@ -268,7 +268,7 @@ Translation Canvas
                         <div class="container-with-shadow" style="display:none">
                             {% for key, value in data.prediction.items() %}
                                 {% if value is mapping and value.error_explanation %}
-                                    <span class="error-explanation" id="error_tooltip-{{ key }}-{{ outerloop_index }}-{{ loop.index }}">Error Explanation: {{ value.error_explanation }}</span>
+                                    <span class="error-explanation" id="error_tooltip-{{ key }}-{{ outerloop_index }}-{{ loop.index }}-{{ data.pred_id }}">Error Explanation: {{ value.error_explanation }}</span>
                                 {% endif %}
                             {% endfor %}
                         </div>
