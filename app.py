@@ -73,7 +73,7 @@ def create_app(test_config=None):
         
         # clean out session
         session.clear()
-        runs = read_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type, exit_status FROM runs ORDER BY target_lang, se_score, bleu_score DESC LIMIT 5;", logging=logging)
+        runs = read_data("SELECT id, filename, source_lang, target_lang, in_progress, se_score, bleu_score, num_predictions, run_type, exit_status FROM runs ORDER BY target_lang, se_score, bleu_score DESC;", logging=logging)
         table_data = []
         for run in runs:
             se_score = round(float(run[5]), 3) if run[5] else 'N/A'
@@ -199,8 +199,44 @@ def create_app(test_config=None):
         return render_template('input_form.j2', help_text=help_text, source_languages=source_languages, 
                                target_languages=target_languages, 
                                language_names=language_names, available_gpus=available_gpus)
+        
     
-    @app.route('/input_form/step2', methods=['GET', 'POST'])
+    @app.route('/input_form/editor', methods = ['POST'])
+    def editor():
+        help_text = help_text_json['editor']
+        form_info = request.form
+        if len(request.form) == 0:
+            if 'step1_data' not in session:
+                render_template('error.j2', error_message = "Form data has been lost.", method='POST', link='/input_form/step1', help_text = help_text_json['error'])
+            else:
+                form_info = session['step1_data']
+                
+            
+        if 'file_data' in form_info:
+            filename = form_info[1]['file']
+            file_type = form_info[1]['file_options']    
+            
+        elif 'file_upload' in request.files and request.files['file_upload'].filename != '':
+            file = request.files['file_upload']
+            filename = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
+            file.save(filename)
+            file_type = form_info['file_options']
+            
+        else:
+            filename = form_info['file']
+            file_type = form_info['file_options']
+
+
+        if not os.path.exists(filename):
+            return render_template("error.j2", error_message="The file you specified does not exist. Please specify the file path of a valid file stored on the system that is running this webapp, or upload a file.",method="POST", link='/input_form/step2', help_text=help_text_json['error'])
+        
+        memorable_name = session['step1_data']['memorable_name']
+        session['step1_data']['file'] = filename
+        source_code = read_file_content(os.path.join(path_to_file, 'file_extraction_scripts', f'extract_pairs_from_{file_type}.py'))
+        file_content = read_file_content(filename)
+        return render_template('editor.j2', source_code=source_code, file_content=file_content, file_type=file_type, memorable_name=memorable_name, filename=filename, help_text=help_text)
+    
+    @app.route('/input_form/step2', methods=['POST'])
     def file_input():
         """
         Render the file_input.j2 template.
@@ -210,51 +246,38 @@ def create_app(test_config=None):
         """
         help_text = help_text_json["file_input"]
         
+        
         if 'gpus' in request.form:
             json.dump(request.form.getlist('gpus'), open(CUDA_DEVICES_FILE, 'w'), indent=4)
+    
         
-
-        
-        if 'file_options' in request.form:              # user has chosen a file type
-            
-            if 'file_data' in request.form:
-                filename = request.form[1]['file']
-                file_type = request.form[1]['file_options']    
+        form_info = request.form
+        if 'step1_data' in session:
+            form_info = session['step1_data']
+        elif len(request.form) > 0:
+            form_info = request.form.to_dict()
+            session['step1_data'] = form_info
                 
-            elif 'file_upload' in request.files and request.files['file_upload'].filename != '':
-                file = request.files['file_upload']
-                filename = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename))
-                file.save(filename)
-                file_type = request.form['file_options']
-                
-            else:
-                filename = request.form['file']
-                if not os.path.exists(filename):
-                    render_template("error.j2", error_message="File not found")
-                file_type = request.form['file_options']
-            
-            memorable_name = session['step1_data']['memorable_name']
-            session['step1_data']['file'] = filename
-            source_code = read_file_content(os.path.join(path_to_file, 'file_extraction_scripts', f'extract_pairs_from_{file_type}.py'))
-            file_content = read_file_content(filename)
-            return render_template('editor.j2', source_code=source_code, file_content=file_content, file_type=file_type, memorable_name=memorable_name, filename=filename, help_text=help_text)
         
-        if 'input_method' in request.form or session['step1_data']:
-            session['step1_data'] = request.form.to_dict()
-            evaluation_type = session['step1_data']['evaluation_type'] if 'step1_data' in session and 'evaluation_type' in session['step1_data'] else None
-            if 'evaluation_type' in request.form:
-                evaluation_type = request.form.getlist('evaluation_type')
-            session['step1_data']['evaluation_type'] = evaluation_type
-            
-            data_types = session['step1_data']['data_types'] if 'step1_data' in session and 'data_types' in session['step1_data'] else None
-            if 'data_types' in request.form:
-                data_types = request.form['data_types']
+        if 'input_method' not in form_info:
+            return render_template('error.j2', )
+        
+        if 'input_method' in form_info:
+            data_types = form_info['data_types'] if 'data_types' in form_info else None
                 
             src = False if data_types == 'ref' else True
             ref = False if data_types == 'src' else True
+            
+            accept_file_types = """
+                .json,
+                .log,
+                .csv,
+                .tsv,
+                .xml,
+                .txt 
+            """
                 
-                
-            if request.form['input_method'] == 'file':
+            if form_info['input_method'] == 'file':
                 file_options = {
                     "JSON (.json)": "json",
                     "SimulEval output (.log)": "log",
@@ -263,7 +286,7 @@ def create_app(test_config=None):
                     "XML (.xml)": "xml",
                     "Text (.txt) ": "txt",
                     }
-                return render_template('file_input.j2', help_text=help_text, file_options=file_options) 
+                return render_template('file_input.j2', help_text=help_text, file_options=file_options, accept_file_types = accept_file_types) 
             else:
             
                 return render_template('manual_input.j2', help_text=help_text, src=src, ref=ref)
@@ -276,7 +299,6 @@ def create_app(test_config=None):
         Returns:
             str: The rendered HTML template.
         """
-        
         source_code = request.form['source_code']
         file_type = request.form['file_options']
         filename = request.form['file']
@@ -288,7 +310,6 @@ def create_app(test_config=None):
                         cwd=path_to_file,
                         capture_output=True,
                         text=True)
-        
         if os.path.exists(os.path.join(path_to_file, 'jobs', memorable_name, f'{memorable_name}_extracted.json')):
             pairs = read_file_content(os.path.join(path_to_file, 'jobs', memorable_name, f'{memorable_name}_extracted.json'))
             file_content = read_file_content(filename)

@@ -39,7 +39,7 @@ Translation Canvas
         </div>
         
         <div class="editor-buttons">
-            <form method="GET" action="{{ url_for('file_input') }}" class="input-form" id = "editorPreviousForm">
+            <form method="POST" action="{{ url_for('file_input') }}" class="input-form" id = "previousForm">
                 <button type="submit" class="submit-button">Previous</button>
             </form>
             <form method="POST" action="{{ url_for('preview_pairs') }}" class="input-form" id = "editorNextForm" on>

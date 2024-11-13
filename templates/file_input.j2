@@ -7,7 +7,7 @@ Translation Canvas
 {% block content %}
     <div class="container">
         <h2 class="description">Extract prediction and reference from file</h2>
-        <form method="POST" action="{{ url_for('file_input') }}" class="input-form" id = "logForm" enctype="multipart/form-data">
+        <form method="POST" action="{{ url_for('editor') }}" class="input-form" id = "logForm" enctype="multipart/form-data">
             <label for="file_options" class="field-description-text">Select the type of file you are uploading:</label>
             <select class="input-field" id="file_options" name="file_options">
                 {% for key, value in file_options.items() %}
@@ -19,7 +19,7 @@ Translation Canvas
 
             <div class="description">  --- OR (but not both) --- </div>
             <label for = "file" class = "field-description-text">Upload your file:</label>
-            <input type="file" id="file_upload" name="file_upload" class="input-field">
+            <input type="file" id="file_upload" name="file_upload" class="input-field" accept = {{ accept_file_types }}>
             <button type="submit" class="submit-button">Next</button>
         </form>
     </div>

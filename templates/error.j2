@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}
+Translation Canvas
+{% endblock %}
+
+{% block content %}
+
+ <div class="container">
+        <h2 class="description">We apologize. There seems to be an error:</h2>
+        <h4 class = "description"> {{ error_message }}</h4>
+        <div class="editor-buttons">
+            <form method={{ method }} action="{{ link }}" class="input-form" id = "previousForm">
+                <button type="submit" class="submit-button">Return to previous page</button>
+            </form>
+        </div>
+</div>
+
+{% endblock %}

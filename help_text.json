@@ -36,5 +36,11 @@
     },
     "dashboard": {
         "Compare system level stats of selected runs.": "None"
+    },
+    "editor": {
+        "Write Python code to extract source/prediction/reference pairs from the inputted file": "None"
+    },
+    "error": {
+        "The system ran into an error. Press the return button to return to the previous page": "None"
     }
 }
